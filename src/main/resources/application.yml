@@ -21,6 +21,10 @@ logging:
   file:
     name: logs/app.log
 
+springdoc:
+  api-docs:
+    version: openapi_3_1
+
 app:
   jwt:
     secret: dev-secret-key-change-in-production-min-32-chars!!

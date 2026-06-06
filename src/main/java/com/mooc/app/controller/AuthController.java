@@ -1,9 +1,11 @@
 package com.mooc.app.controller;
 
 import com.mooc.app.dto.*;
+import com.mooc.app.dto.response.*;
 import com.mooc.app.exception.AuthException;
 import com.mooc.app.filter.RequestIdFilter;
 import com.mooc.app.service.AuthService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,8 +13,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -25,27 +25,27 @@ public class AuthController {
     }
 
     @PostMapping("/send-code")
-    public ResponseEntity<Map<String, String>> sendCode(
+    public ResponseEntity<SendCodeResponse> sendCode(
             @Valid @RequestBody SendCodeRequest request,
             HttpServletRequest httpRequest) {
         String ip = httpRequest.getRemoteAddr();
         authService.sendCode(request.email(), ip);
         String requestId = getRequestId(httpRequest);
-        return ResponseEntity.ok(Map.of("request_id", requestId));
+        return ResponseEntity.ok(new SendCodeResponse(requestId));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(
+    public ResponseEntity<RegisterResponse> register(
             @Valid @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest) {
         String ip = httpRequest.getRemoteAddr();
         authService.register(request.email(), request.code(), request.password(), ip);
         String requestId = getRequestId(httpRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("request_id", requestId));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new RegisterResponse(requestId));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(
+    public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -62,15 +62,11 @@ public class AuthController {
         httpResponse.addCookie(cookie);
 
         String requestId = getRequestId(httpRequest);
-        return ResponseEntity.ok(Map.of(
-            "request_id", requestId,
-            "access_token", result.accessToken(),
-            "expires_in", result.expiresIn()
-        ));
+        return ResponseEntity.ok(new LoginResponse(requestId, result.accessToken(), result.expiresIn()));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<Map<String, Object>> refresh(
+    public ResponseEntity<RefreshResponse> refresh(
             @CookieValue(name = "refresh_token", required = false) String refreshToken,
             HttpServletRequest httpRequest) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -79,11 +75,7 @@ public class AuthController {
         }
         AuthService.RefreshResult result = authService.refresh(refreshToken);
         String requestId = getRequestId(httpRequest);
-        return ResponseEntity.ok(Map.of(
-            "request_id", requestId,
-            "access_token", result.accessToken(),
-            "expires_in", result.expiresIn()
-        ));
+        return ResponseEntity.ok(new RefreshResponse(requestId, result.accessToken(), result.expiresIn()));
     }
 
     @PostMapping("/logout")
@@ -109,22 +101,24 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> getMe(
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<UserInfoResponse> getMe(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             HttpServletRequest httpRequest) {
         String token = extractBearerToken(authHeader);
         AuthService.UserInfo info = authService.getMe(token);
         String requestId = getRequestId(httpRequest);
-        return ResponseEntity.ok(Map.of(
-            "request_id", requestId,
-            "id", info.id().toString(),
-            "email", info.email(),
-            "state", info.state(),
-            "created_at", info.createdAt().toString()
+        return ResponseEntity.ok(new UserInfoResponse(
+            requestId,
+            info.id().toString(),
+            info.email(),
+            info.state(),
+            info.createdAt().toString()
         ));
     }
 
     @DeleteMapping("/me")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Void> deleteMe(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         String token = extractBearerToken(authHeader);
