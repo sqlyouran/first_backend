@@ -26,6 +26,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getStatus()).body(body);
     }
 
+    @ExceptionHandler(PostException.class)
+    public ResponseEntity<ErrorResponse> handlePostException(PostException ex, HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        ErrorResponse body = new ErrorResponse(requestId, ex.getErrorCode(), ex.getMessage());
+        return ResponseEntity.status(ex.getStatus()).body(body);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex,
                                                           HttpServletRequest request) {

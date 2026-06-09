@@ -3,11 +3,10 @@ package com.mooc.app.service;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class RateLimitService {
@@ -22,15 +21,10 @@ public class RateLimitService {
         Instant now = Instant.now();
         Instant windowStart = now.minusSeconds(windowSeconds);
 
-        List<Instant> timestamps = windows.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
+        List<Instant> timestamps = windows.computeIfAbsent(key, k -> new ArrayList<>());
 
         // Clean expired entries
-        Iterator<Instant> it = timestamps.iterator();
-        while (it.hasNext()) {
-            if (it.next().isBefore(windowStart)) {
-                it.remove();
-            }
-        }
+        timestamps.removeIf(t -> t.isBefore(windowStart));
 
         if (timestamps.size() >= limit) {
             return true;
