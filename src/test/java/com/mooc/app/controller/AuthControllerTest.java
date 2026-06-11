@@ -195,10 +195,21 @@ class AuthControllerTest {
     }
 
     @Test
-    void refresh_noCookie_returns401() throws Exception {
+    void refresh_noCookie_returns401AndClearsCookie() throws Exception {
         mockMvc.perform(post("/api/auth/refresh"))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.error_code").value("invalid_refresh_token"));
+            .andExpect(jsonPath("$.error_code").value("invalid_refresh_token"))
+            .andExpect(cookie().maxAge("refresh_token", 0));
+    }
+
+    @Test
+    void refresh_invalidToken_returns401AndClearsCookie() throws Exception {
+        Cookie staleCookie = new Cookie("refresh_token", "invalid.stale.token");
+        mockMvc.perform(post("/api/auth/refresh")
+                .cookie(staleCookie))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error_code").value("invalid_refresh_token"))
+            .andExpect(cookie().maxAge("refresh_token", 0));
     }
 
     // === logout tests ===

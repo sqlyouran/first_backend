@@ -68,14 +68,22 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<RefreshResponse> refresh(
             @CookieValue(name = "refresh_token", required = false) String refreshToken,
-            HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         if (refreshToken == null || refreshToken.isBlank()) {
+            clearRefreshCookie(httpResponse);
             throw new AuthException(HttpStatus.UNAUTHORIZED, "invalid_refresh_token",
                     "Invalid refresh token");
         }
-        AuthService.RefreshResult result = authService.refresh(refreshToken);
-        String requestId = getRequestId(httpRequest);
-        return ResponseEntity.ok(new RefreshResponse(requestId, result.accessToken(), result.expiresIn()));
+        try {
+            AuthService.RefreshResult result = authService.refresh(refreshToken);
+            String requestId = getRequestId(httpRequest);
+            return ResponseEntity.ok(new RefreshResponse(requestId, result.accessToken(), result.expiresIn()));
+        } catch (AuthException ex) {
+            // Clear stale cookie so middleware stops redirecting away from /login
+            clearRefreshCookie(httpResponse);
+            throw ex;
+        }
     }
 
     @PostMapping("/logout")
@@ -132,6 +140,16 @@ public class AuthController {
                     "Missing or invalid authorization header");
         }
         return authHeader.substring(7);
+    }
+
+    private void clearRefreshCookie(HttpServletResponse httpResponse) {
+        Cookie cookie = new Cookie("refresh_token", "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setAttribute("SameSite", "Strict");
+        httpResponse.addCookie(cookie);
     }
 
     private String getRequestId(HttpServletRequest request) {
