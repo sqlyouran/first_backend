@@ -18,6 +18,8 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
 
+import java.util.Map;
+
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -308,6 +310,252 @@ class PostControllerTest {
             .andExpect(jsonPath("$.size").value(100));
     }
 
+    // === 6.1 Interaction stats fields ===
+
+    @Test
+    void listPosts_defaultPage_includesInteractionFields() throws Exception {
+        createPost("Post A");
+        createPost("Post B");
+
+        mockMvc.perform(get("/api/posts"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].comment_count").isNumber())
+            .andExpect(jsonPath("$.items[0].up_vote_count").isNumber())
+            .andExpect(jsonPath("$.items[0].bookmark_count").isNumber())
+            .andExpect(jsonPath("$.has_more").isBoolean());
+    }
+
+    // === 6.2 Interaction stats correctness ===
+
+    @Test
+    void listPosts_withInteractions_correctCounts() throws Exception {
+        String postId = createPost("Interactive Post");
+
+        // Add a comment
+        mockMvc.perform(post("/api/posts/" + postId + "/comments")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\": \"Great post!\"}"));
+
+        // Add an upvote
+        mockMvc.perform(post("/api/posts/" + postId + "/vote")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"vote_type\": \"up\"}"));
+
+        // Add a bookmark
+        mockMvc.perform(post("/api/posts/" + postId + "/bookmark")
+                .header("Authorization", "Bearer " + otherToken));
+
+        mockMvc.perform(get("/api/posts"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].comment_count").value(1))
+            .andExpect(jsonPath("$.items[0].up_vote_count").value(1))
+            .andExpect(jsonPath("$.items[0].bookmark_count").value(1));
+    }
+
+    // === 6.3 sort=most_upvoted ===
+
+    @Test
+    void listPosts_sortMostUpvoted_correctOrder() throws Exception {
+        String post1 = createPost("Low Votes");
+        String post2 = createPost("High Votes");
+
+        // post2 gets 2 upvotes, post1 gets 1
+        mockMvc.perform(post("/api/posts/" + post2 + "/vote")
+                .header("Authorization", "Bearer " + authorToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"vote_type\": \"up\"}"));
+        mockMvc.perform(post("/api/posts/" + post2 + "/vote")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"vote_type\": \"up\"}"));
+        mockMvc.perform(post("/api/posts/" + post1 + "/vote")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"vote_type\": \"up\"}"));
+
+        mockMvc.perform(get("/api/posts?sort=most_upvoted"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].title").value("High Votes"))
+            .andExpect(jsonPath("$.items[0].up_vote_count").value(2))
+            .andExpect(jsonPath("$.items[1].title").value("Low Votes"));
+    }
+
+    // === 6.4 sort=most_commented ===
+
+    @Test
+    void listPosts_sortMostCommented_correctOrder() throws Exception {
+        String post1 = createPost("Few Comments");
+        String post2 = createPost("Many Comments");
+
+        // post2 gets 2 comments
+        mockMvc.perform(post("/api/posts/" + post2 + "/comments")
+                .header("Authorization", "Bearer " + authorToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\": \"Comment 1\"}"));
+        mockMvc.perform(post("/api/posts/" + post2 + "/comments")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\": \"Comment 2\"}"));
+        // post1 gets 1 comment
+        mockMvc.perform(post("/api/posts/" + post1 + "/comments")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\": \"Comment 3\"}"));
+
+        mockMvc.perform(get("/api/posts?sort=most_commented"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].title").value("Many Comments"))
+            .andExpect(jsonPath("$.items[0].comment_count").value(2))
+            .andExpect(jsonPath("$.items[1].title").value("Few Comments"));
+    }
+
+    // === 6.5 cursor pagination ===
+
+    @Test
+    void listPosts_cursorPagination_nextCursorAndHasMore() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            createPost("Post " + i);
+            Thread.sleep(20);
+        }
+
+        // First page via cursor (use very early cursor to get all), size=3
+        MvcResult page1 = mockMvc.perform(get("/api/posts?size=3&sort=latest&cursor=2099-01-01T00:00:00Z"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items", hasSize(3)))
+            .andExpect(jsonPath("$.has_more").value(true))
+            .andExpect(jsonPath("$.next_cursor").isNotEmpty())
+            .andReturn();
+
+        String nextCursor = objectMapper.readTree(page1.getResponse().getContentAsString())
+                .get("next_cursor").asText();
+
+        // Second page with cursor — should have remaining 2 items, no more
+        mockMvc.perform(get("/api/posts?size=3&cursor=" + nextCursor + "&sort=latest"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items", hasSize(2)))
+            .andExpect(jsonPath("$.has_more").value(false));
+    }
+
+    // === 6.6 invalid sort ===
+
+    @Test
+    void listPosts_invalidSort_returns400() throws Exception {
+        mockMvc.perform(get("/api/posts?sort=invalid_sort"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error_code").value("validation_error"));
+    }
+
+    // === 6.7 cursor works for all sorts ===
+
+    @Test
+    void listPosts_firstLoad_returnsNextCursorForAnySort() throws Exception {
+        createPost("Post A");
+        createPost("Post B");
+
+        // Offset mode (first load) with sort=most_upvoted should return next_cursor
+        mockMvc.perform(get("/api/posts?sort=most_upvoted"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items", hasSize(2)))
+            .andExpect(jsonPath("$.next_cursor").isNotEmpty())
+            .andExpect(jsonPath("$.page").value(1));
+    }
+
+    @Test
+    void listPosts_cursorPaginationMostUpvoted_correctPaging() throws Exception {
+        String post1 = createPost("LowVotes");
+        String post2 = createPost("MidVotes");
+        String post3 = createPost("HighVotes");
+
+        // post3: 2 votes (author + other), post2: 1 vote (author), post1: 0 votes
+        mockMvc.perform(post("/api/posts/" + post3 + "/vote")
+                .header("Authorization", "Bearer " + authorToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"vote_type\": \"up\"}"));
+        mockMvc.perform(post("/api/posts/" + post3 + "/vote")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"vote_type\": \"up\"}"));
+        mockMvc.perform(post("/api/posts/" + post2 + "/vote")
+                .header("Authorization", "Bearer " + authorToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"vote_type\": \"up\"}"));
+
+        // First load: size=2, sort=most_upvoted
+        MvcResult page1 = mockMvc.perform(get("/api/posts?size=2&sort=most_upvoted"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items", hasSize(2)))
+            .andExpect(jsonPath("$.items[0].title").value("HighVotes"))
+            .andExpect(jsonPath("$.has_more").value(true))
+            .andExpect(jsonPath("$.next_cursor").isNotEmpty())
+            .andReturn();
+
+        String nextCursor = objectMapper.readTree(page1.getResponse().getContentAsString())
+                .get("next_cursor").asText();
+
+        // Second load: cursor pagination — remaining 1 item
+        mockMvc.perform(get("/api/posts?size=2&sort=most_upvoted&cursor=" + nextCursor))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items", hasSize(1)))
+            .andExpect(jsonPath("$.items[0].title").value("LowVotes"))
+            .andExpect(jsonPath("$.has_more").value(false));
+    }
+
+    @Test
+    void listPosts_cursorPaginationMostCommented_correctPaging() throws Exception {
+        String post1 = createPost("FewComments");
+        String post2 = createPost("ManyComments");
+
+        // post2: 2 comments, post1: 1 comment
+        mockMvc.perform(post("/api/posts/" + post2 + "/comments")
+                .header("Authorization", "Bearer " + authorToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\": \"c1\"}"));
+        mockMvc.perform(post("/api/posts/" + post2 + "/comments")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\": \"c2\"}"));
+        mockMvc.perform(post("/api/posts/" + post1 + "/comments")
+                .header("Authorization", "Bearer " + authorToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\": \"c3\"}"));
+
+        // First load
+        MvcResult page1 = mockMvc.perform(get("/api/posts?size=1&sort=most_commented"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items", hasSize(1)))
+            .andExpect(jsonPath("$.items[0].title").value("ManyComments"))
+            .andExpect(jsonPath("$.has_more").value(true))
+            .andExpect(jsonPath("$.next_cursor").isNotEmpty())
+            .andReturn();
+
+        String nextCursor = objectMapper.readTree(page1.getResponse().getContentAsString())
+                .get("next_cursor").asText();
+
+        // Second load
+        mockMvc.perform(get("/api/posts?size=1&sort=most_commented&cursor=" + nextCursor))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items", hasSize(1)))
+            .andExpect(jsonPath("$.items[0].title").value("FewComments"))
+            .andExpect(jsonPath("$.has_more").value(false));
+    }
+
+    // === 6.8 listUserPosts enhanced ===
+
+    @Test
+    void listUserPosts_sortAndStatsFields() throws Exception {
+        String postId = createPost("User Post With Stats");
+
+        // Add an upvote
+        mockMvc.perform(post("/api/posts/" + postId + "/vote")
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"vote_type\": \"up\"}"));
+
+        String authorId = extractUserId(authorToken);
+
+        mockMvc.perform(get("/api/users/" + authorId + "/posts?sort=most_upvoted"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].up_vote_count").value(1))
+            .andExpect(jsonPath("$.items[0].comment_count").isNumber())
+            .andExpect(jsonPath("$.items[0].bookmark_count").isNumber());
+    }
+
     // === 6.8 GET /api/users/{userId}/posts ===
 
     @Test
@@ -330,6 +578,19 @@ class PostControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items", hasSize(0)))
             .andExpect(jsonPath("$.total").value(0));
+    }
+
+    // === 6.9 cursor boundary ===
+
+    @Test
+    void listPosts_cursorNoMoreData_hasMoreFalse() throws Exception {
+        createPost("Only Post");
+
+        // Cursor mode with early cursor gets 1 post, hasMore=false
+        mockMvc.perform(get("/api/posts?size=20&sort=latest&cursor=2099-01-01T00:00:00Z"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items", hasSize(1)))
+            .andExpect(jsonPath("$.has_more").value(false));
     }
 
     // === Helper methods ===

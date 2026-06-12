@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,4 +20,7 @@ public interface CommentRepository extends JpaRepository<CommentEntity, UUID> {
     Page<CommentEntity> findRepliesByParentId(@Param("parentId") UUID parentId, Pageable pageable);
 
     Optional<CommentEntity> findByIdAndDeletedFalse(UUID id);
+
+    @Query("SELECT c.postId, COUNT(c) FROM CommentEntity c WHERE c.postId IN :postIds AND c.deleted = false GROUP BY c.postId")
+    List<Object[]> batchCountActiveComments(@Param("postIds") List<UUID> postIds);
 }

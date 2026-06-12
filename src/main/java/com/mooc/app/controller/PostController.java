@@ -4,6 +4,8 @@ import com.mooc.app.dto.CreatePostRequest;
 import com.mooc.app.dto.UpdatePostRequest;
 import com.mooc.app.dto.response.PostListResponse;
 import com.mooc.app.dto.response.PostResponse;
+import com.mooc.app.entity.PostSortBy;
+import com.mooc.app.exception.PostException;
 import com.mooc.app.service.JwtService;
 import com.mooc.app.service.PostService;
 import com.mooc.app.util.AuthUtil;
@@ -69,9 +71,12 @@ public class PostController {
     public ResponseEntity<PostListResponse> listPosts(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "latest") String sort,
             HttpServletRequest httpRequest) {
         String requestId = AuthUtil.getRequestId(httpRequest);
-        PostListResponse response = postService.listPosts(page, size, requestId);
+        PostSortBy sortBy = parseSortBy(sort);
+        PostListResponse response = postService.listPosts(page, size, cursor, sortBy, requestId);
         return ResponseEntity.ok(response);
     }
 
@@ -80,10 +85,21 @@ public class PostController {
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "latest") String sort,
             HttpServletRequest httpRequest) {
         String requestId = AuthUtil.getRequestId(httpRequest);
-        PostListResponse response = postService.listUserPosts(userId, page, size, requestId);
+        PostSortBy sortBy = parseSortBy(sort);
+        PostListResponse response = postService.listUserPosts(userId, page, size, cursor, sortBy, requestId);
         return ResponseEntity.ok(response);
+    }
+
+    private PostSortBy parseSortBy(String sort) {
+        try {
+            return PostSortBy.fromString(sort);
+        } catch (IllegalArgumentException e) {
+            throw new PostException(HttpStatus.BAD_REQUEST, "validation_error", "Invalid sort value: " + sort);
+        }
     }
 
 
