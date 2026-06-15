@@ -3,6 +3,8 @@ package com.mooc.app.controller;
 import com.mooc.app.dto.CreateCommentRequest;
 import com.mooc.app.dto.response.CommentListResponse;
 import com.mooc.app.dto.response.CommentResponse;
+import com.mooc.app.entity.EntityType;
+import com.mooc.app.entity.EntityType;
 import com.mooc.app.service.CommentService;
 import com.mooc.app.service.JwtService;
 import com.mooc.app.util.AuthUtil;
@@ -32,7 +34,7 @@ public class CommentController {
             HttpServletRequest httpRequest) {
         UUID userId = AuthUtil.requireUserId(httpRequest, jwtService);
         String requestId = AuthUtil.getRequestId(httpRequest);
-        CommentResponse response = commentService.createComment(postId, userId, request, requestId);
+        CommentResponse response = commentService.createComment(postId, EntityType.POST, userId, request, requestId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -43,7 +45,7 @@ public class CommentController {
             @RequestParam(defaultValue = "20") int size,
             HttpServletRequest httpRequest) {
         String requestId = AuthUtil.getRequestId(httpRequest);
-        CommentListResponse response = commentService.listTopLevelComments(postId, page, size, requestId);
+        CommentListResponse response = commentService.listTopLevelComments(postId, EntityType.POST, page, size, requestId);
         return ResponseEntity.ok(response);
     }
 

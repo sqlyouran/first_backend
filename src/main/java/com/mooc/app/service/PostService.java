@@ -4,6 +4,7 @@ import com.mooc.app.dto.CreatePostRequest;
 import com.mooc.app.dto.UpdatePostRequest;
 import com.mooc.app.dto.response.PostListResponse;
 import com.mooc.app.dto.response.PostResponse;
+import com.mooc.app.entity.EntityType;
 import com.mooc.app.entity.PostEntity;
 import com.mooc.app.entity.PostSortBy;
 import com.mooc.app.entity.PostStatus;
@@ -66,7 +67,19 @@ public class PostService {
             }
         }
 
+        // Set preliminary slug before first save to satisfy validation
+        String preliminarySlug = post.getTitle().toLowerCase()
+                .replaceAll("[^a-z0-9\\u4e00-\\u9fa5]+", "-")
+                .replaceAll("^-|-$", "");
+        if (preliminarySlug.length() > 50) {
+            preliminarySlug = preliminarySlug.substring(0, 50).replaceAll("-$", "");
+        }
+        post.setSlug(preliminarySlug + "-temp");
+
         PostEntity saved = postRepository.save(post);
+        // Generate final slug with ID suffix for uniqueness
+        saved.setSlug(generateSlug(saved.getTitle(), saved.getId()));
+        saved = postRepository.save(saved);
         return toPostResponse(saved, requestId, true, 0, 0, 0);
     }
 
@@ -115,17 +128,42 @@ public class PostService {
         postRepository.save(post);
     }
 
-    public PostResponse getPost(UUID postId, String requestId) {
-        PostEntity post = postRepository.findByIdAndDeletedFalse(postId)
-                .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+    public PostResponse getPost(String idOrSlug, String requestId) {
+        PostEntity post = findPostByIdOrSlug(idOrSlug);
 
         if (post.getStatus() != PostStatus.PUBLISHED) {
             throw new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found");
         }
 
-        Map<UUID, long[]> stats = batchFetchStats(List.of(postId));
-        long[] s = stats.getOrDefault(postId, new long[]{0, 0, 0});
+        Map<UUID, long[]> stats = batchFetchStats(List.of(post.getId()));
+        long[] s = stats.getOrDefault(post.getId(), new long[]{0, 0, 0});
         return toPostResponse(post, requestId, true, s[0], s[1], s[2]);
+    }
+
+    private PostEntity findPostByIdOrSlug(String idOrSlug) {
+        // Try UUID first
+        try {
+            UUID id = UUID.fromString(idOrSlug);
+            return postRepository.findByIdAndDeletedFalse(id)
+                    .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+        } catch (IllegalArgumentException e) {
+            // Not a valid UUID, try slug
+            return postRepository.findBySlugAndDeletedFalse(idOrSlug)
+                    .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+        }
+    }
+
+    private String generateSlug(String title, UUID id) {
+        // Convert title to lowercase and replace spaces/special chars with hyphens
+        String slug = title.toLowerCase()
+                .replaceAll("[^a-z0-9\\u4e00-\\u9fa5]+", "-")
+                .replaceAll("^-|-$", "");
+        // Truncate to 50 chars and append first 8 chars of ID for uniqueness
+        if (slug.length() > 50) {
+            slug = slug.substring(0, 50).replaceAll("-$", "");
+        }
+        String idSuffix = id.toString().substring(0, 8);
+        return slug + "-" + idSuffix;
     }
 
     public PostListResponse listPosts(int page, int size, String cursor, PostSortBy sort, String requestId) {
@@ -259,12 +297,12 @@ public class PostService {
             long count = (Long) row[1];
             result.get(postId)[1] = count;
         }
-        for (Object[] row : bookmarkRepository.batchCountBookmarks(postIds)) {
+        for (Object[] row : bookmarkRepository.batchCountBookmarks(postIds, EntityType.POST)) {
             UUID postId = (UUID) row[0];
             long count = (Long) row[1];
             result.get(postId)[2] = count;
         }
-        for (Object[] row : commentRepository.batchCountActiveComments(postIds)) {
+        for (Object[] row : commentRepository.batchCountActiveComments(postIds, EntityType.POST)) {
             UUID postId = (UUID) row[0];
             long count = (Long) row[1];
             result.get(postId)[0] = count;
@@ -278,6 +316,7 @@ public class PostService {
                 requestId,
                 post.getId().toString(),
                 post.getTitle(),
+                post.getSlug(),
                 includeContent ? post.getContent() : null,
                 post.getCoverImage(),
                 post.getTags(),

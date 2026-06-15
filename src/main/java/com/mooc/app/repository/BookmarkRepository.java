@@ -1,6 +1,7 @@
 package com.mooc.app.repository;
 
 import com.mooc.app.entity.BookmarkEntity;
+import com.mooc.app.entity.EntityType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,10 +14,12 @@ import java.util.UUID;
 
 public interface BookmarkRepository extends JpaRepository<BookmarkEntity, UUID> {
 
-    Optional<BookmarkEntity> findByPostIdAndUserId(UUID postId, UUID userId);
+    Optional<BookmarkEntity> findByEntityIdAndEntityTypeAndUserId(UUID entityId, EntityType entityType, UUID userId);
 
     Page<BookmarkEntity> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 
-    @Query("SELECT b.postId, COUNT(b) FROM BookmarkEntity b WHERE b.postId IN :postIds GROUP BY b.postId")
-    List<Object[]> batchCountBookmarks(@Param("postIds") List<UUID> postIds);
+    Page<BookmarkEntity> findByUserIdAndEntityTypeOrderByCreatedAtDesc(UUID userId, EntityType entityType, Pageable pageable);
+
+    @Query("SELECT b.entityId, COUNT(b) FROM BookmarkEntity b WHERE b.entityId IN :entityIds AND b.entityType = :entityType GROUP BY b.entityId")
+    List<Object[]> batchCountBookmarks(@Param("entityIds") List<UUID> entityIds, @Param("entityType") EntityType entityType);
 }

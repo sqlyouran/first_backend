@@ -21,6 +21,10 @@ public interface PostRepository extends JpaRepository<PostEntity, UUID> {
 
     Optional<PostEntity> findByIdAndDeletedFalse(UUID id);
 
+    Optional<PostEntity> findBySlugAndDeletedFalse(String slug);
+
+    List<PostEntity> findAllByIdInAndStatusAndDeletedFalse(List<UUID> ids, PostStatus status);
+
     // === Cursor-based pagination (keyset) ===
 
     @Query("SELECT p FROM PostEntity p WHERE p.status = :status AND p.deleted = false AND p.createdAt < :cursor ORDER BY p.createdAt DESC")
@@ -34,13 +38,13 @@ public interface PostRepository extends JpaRepository<PostEntity, UUID> {
     @Query("SELECT p FROM PostEntity p WHERE p.status = :status AND p.deleted = false ORDER BY (SELECT COUNT(v) FROM VoteEntity v WHERE v.postId = p.id AND v.voteType = 'UP') DESC, p.createdAt DESC")
     Page<PostEntity> findByUpVoteCount(Pageable pageable, @Param("status") PostStatus status);
 
-    @Query("SELECT p FROM PostEntity p WHERE p.status = :status AND p.deleted = false ORDER BY (SELECT COUNT(c) FROM CommentEntity c WHERE c.postId = p.id AND c.deleted = false) DESC, p.createdAt DESC")
+    @Query("SELECT p FROM PostEntity p WHERE p.status = :status AND p.deleted = false ORDER BY (SELECT COUNT(c) FROM CommentEntity c WHERE c.entityId = p.id AND c.entityType = 'POST' AND c.deleted = false) DESC, p.createdAt DESC")
     Page<PostEntity> findByCommentCount(Pageable pageable, @Param("status") PostStatus status);
 
     @Query("SELECT p FROM PostEntity p WHERE p.authorId = :authorId AND p.status = :status AND p.deleted = false ORDER BY (SELECT COUNT(v) FROM VoteEntity v WHERE v.postId = p.id AND v.voteType = 'UP') DESC, p.createdAt DESC")
     Page<PostEntity> findByAuthorIdAndUpVoteCount(Pageable pageable, @Param("authorId") UUID authorId, @Param("status") PostStatus status);
 
-    @Query("SELECT p FROM PostEntity p WHERE p.authorId = :authorId AND p.status = :status AND p.deleted = false ORDER BY (SELECT COUNT(c) FROM CommentEntity c WHERE c.postId = p.id AND c.deleted = false) DESC, p.createdAt DESC")
+    @Query("SELECT p FROM PostEntity p WHERE p.authorId = :authorId AND p.status = :status AND p.deleted = false ORDER BY (SELECT COUNT(c) FROM CommentEntity c WHERE c.entityId = p.id AND c.entityType = 'POST' AND c.deleted = false) DESC, p.createdAt DESC")
     Page<PostEntity> findByAuthorIdAndCommentCount(Pageable pageable, @Param("authorId") UUID authorId, @Param("status") PostStatus status);
 
     // === Aggregation-based sorting (cursor / keyset) ===
@@ -55,9 +59,9 @@ public interface PostRepository extends JpaRepository<PostEntity, UUID> {
                                              Pageable pageable);
 
     @Query("SELECT p FROM PostEntity p WHERE p.status = :status AND p.deleted = false AND ("
-            + "(SELECT COUNT(c) FROM CommentEntity c WHERE c.postId = p.id AND c.deleted = false) < :cursorComments"
-            + " OR ((SELECT COUNT(c) FROM CommentEntity c WHERE c.postId = p.id AND c.deleted = false) = :cursorComments AND p.createdAt < :cursorTime)"
-            + ") ORDER BY (SELECT COUNT(c) FROM CommentEntity c WHERE c.postId = p.id AND c.deleted = false) DESC, p.createdAt DESC")
+            + "(SELECT COUNT(c) FROM CommentEntity c WHERE c.entityId = p.id AND c.entityType = 'POST' AND c.deleted = false) < :cursorComments"
+            + " OR ((SELECT COUNT(c) FROM CommentEntity c WHERE c.entityId = p.id AND c.entityType = 'POST' AND c.deleted = false) = :cursorComments AND p.createdAt < :cursorTime)"
+            + ") ORDER BY (SELECT COUNT(c) FROM CommentEntity c WHERE c.entityId = p.id AND c.entityType = 'POST' AND c.deleted = false) DESC, p.createdAt DESC")
     List<PostEntity> findByCommentCountCursor(@Param("status") PostStatus status,
                                               @Param("cursorComments") long cursorComments,
                                               @Param("cursorTime") Instant cursorTime,
@@ -74,9 +78,9 @@ public interface PostRepository extends JpaRepository<PostEntity, UUID> {
                                                         Pageable pageable);
 
     @Query("SELECT p FROM PostEntity p WHERE p.authorId = :authorId AND p.status = :status AND p.deleted = false AND ("
-            + "(SELECT COUNT(c) FROM CommentEntity c WHERE c.postId = p.id AND c.deleted = false) < :cursorComments"
-            + " OR ((SELECT COUNT(c) FROM CommentEntity c WHERE c.postId = p.id AND c.deleted = false) = :cursorComments AND p.createdAt < :cursorTime)"
-            + ") ORDER BY (SELECT COUNT(c) FROM CommentEntity c WHERE c.postId = p.id AND c.deleted = false) DESC, p.createdAt DESC")
+            + "(SELECT COUNT(c) FROM CommentEntity c WHERE c.entityId = p.id AND c.entityType = 'POST' AND c.deleted = false) < :cursorComments"
+            + " OR ((SELECT COUNT(c) FROM CommentEntity c WHERE c.entityId = p.id AND c.entityType = 'POST' AND c.deleted = false) = :cursorComments AND p.createdAt < :cursorTime)"
+            + ") ORDER BY (SELECT COUNT(c) FROM CommentEntity c WHERE c.entityId = p.id AND c.entityType = 'POST' AND c.deleted = false) DESC, p.createdAt DESC")
     List<PostEntity> findByAuthorIdAndCommentCountCursor(@Param("authorId") UUID authorId,
                                                          @Param("status") PostStatus status,
                                                          @Param("cursorComments") long cursorComments,

@@ -29,25 +29,30 @@ public class BookmarkListResponse extends BaseResponse {
         @JsonProperty("bookmark_id")
         private final String bookmarkId;
 
-        @JsonProperty("post_id")
-        private final String postId;
+        @JsonProperty("entity_id")
+        private final String entityId;
 
-        @JsonProperty("post_title")
-        private final String postTitle;
+        @JsonProperty("entity_type")
+        private final String entityType;
+
+        @JsonProperty("entity_title")
+        private final String entityTitle;
 
         @JsonProperty("created_at")
         private final String createdAt;
 
-        public BookmarkItemResponse(String bookmarkId, String postId, String postTitle, String createdAt) {
+        public BookmarkItemResponse(String bookmarkId, String entityId, String entityType, String entityTitle, String createdAt) {
             this.bookmarkId = bookmarkId;
-            this.postId = postId;
-            this.postTitle = postTitle;
+            this.entityId = entityId;
+            this.entityType = entityType;
+            this.entityTitle = entityTitle;
             this.createdAt = createdAt;
         }
 
         public String getBookmarkId() { return bookmarkId; }
-        public String getPostId() { return postId; }
-        public String getPostTitle() { return postTitle; }
+        public String getEntityId() { return entityId; }
+        public String getEntityType() { return entityType; }
+        public String getEntityTitle() { return entityTitle; }
         public String getCreatedAt() { return createdAt; }
     }
 }

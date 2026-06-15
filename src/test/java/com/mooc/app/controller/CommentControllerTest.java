@@ -54,7 +54,8 @@ class CommentControllerTest {
                 .content(objectMapper.writeValueAsString(req)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").isNotEmpty())
-            .andExpect(jsonPath("$.post_id").value(postId))
+            .andExpect(jsonPath("$.entity_id").value(postId))
+            .andExpect(jsonPath("$.entity_type").value("post"))
             .andExpect(jsonPath("$.content").value("Great post!"))
             .andExpect(jsonPath("$.parent_comment_id").isEmpty())
             .andExpect(jsonPath("$.request_id").isNotEmpty());

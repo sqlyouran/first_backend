@@ -19,6 +19,11 @@ public class PostEntity extends BaseEntity {
     @Column(nullable = false)
     private String title;
 
+    @NotBlank(message = "Slug must not be blank")
+    @Size(max = 220, message = "Slug must not exceed 220 characters")
+    @Column(nullable = false, unique = true)
+    private String slug;
+
     @NotBlank(message = "Content must not be blank")
     @Size(max = 50000, message = "Content must not exceed 50000 characters")
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -43,6 +48,9 @@ public class PostEntity extends BaseEntity {
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
+
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }

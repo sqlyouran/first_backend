@@ -8,6 +8,7 @@ public class PostResponse extends BaseResponse {
 
     private final String id;
     private final String title;
+    private final String slug;
 
     @JsonProperty("cover_image")
     private final String coverImage;
@@ -35,12 +36,13 @@ public class PostResponse extends BaseResponse {
     @JsonProperty("bookmark_count")
     private final long bookmarkCount;
 
-    public PostResponse(String requestId, String id, String title, String content, String coverImage,
+    public PostResponse(String requestId, String id, String title, String slug, String content, String coverImage,
                         List<String> tags, String status, String authorId, String createdAt, String updatedAt,
                         long commentCount, long upVoteCount, long bookmarkCount) {
         super(requestId);
         this.id = id;
         this.title = title;
+        this.slug = slug;
         this.content = content;
         this.coverImage = coverImage;
         this.tags = tags;
@@ -55,6 +57,7 @@ public class PostResponse extends BaseResponse {
 
     public String getId() { return id; }
     public String getTitle() { return title; }
+    public String getSlug() { return slug; }
     public String getContent() { return content; }
     public String getCoverImage() { return coverImage; }
     public List<String> getTags() { return tags; }

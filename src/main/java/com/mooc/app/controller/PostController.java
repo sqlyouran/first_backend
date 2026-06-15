@@ -4,10 +4,12 @@ import com.mooc.app.dto.CreatePostRequest;
 import com.mooc.app.dto.UpdatePostRequest;
 import com.mooc.app.dto.response.PostListResponse;
 import com.mooc.app.dto.response.PostResponse;
+import com.mooc.app.dto.response.PostSpotsResponse;
 import com.mooc.app.entity.PostSortBy;
 import com.mooc.app.exception.PostException;
 import com.mooc.app.service.JwtService;
 import com.mooc.app.service.PostService;
+import com.mooc.app.service.SpotPostService;
 import com.mooc.app.util.AuthUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -22,10 +24,12 @@ public class PostController {
 
     private final PostService postService;
     private final JwtService jwtService;
+    private final SpotPostService spotPostService;
 
-    public PostController(PostService postService, JwtService jwtService) {
+    public PostController(PostService postService, JwtService jwtService, SpotPostService spotPostService) {
         this.postService = postService;
         this.jwtService = jwtService;
+        this.spotPostService = spotPostService;
     }
 
     @PostMapping("/api/posts")
@@ -58,12 +62,12 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/api/posts/{id}")
+    @GetMapping("/api/posts/{idOrSlug}")
     public ResponseEntity<PostResponse> getPost(
-            @PathVariable UUID id,
+            @PathVariable String idOrSlug,
             HttpServletRequest httpRequest) {
         String requestId = AuthUtil.getRequestId(httpRequest);
-        PostResponse response = postService.getPost(id, requestId);
+        PostResponse response = postService.getPost(idOrSlug, requestId);
         return ResponseEntity.ok(response);
     }
 
@@ -100,6 +104,15 @@ public class PostController {
         } catch (IllegalArgumentException e) {
             throw new PostException(HttpStatus.BAD_REQUEST, "validation_error", "Invalid sort value: " + sort);
         }
+    }
+
+    @GetMapping("/api/posts/{id}/spots")
+    public ResponseEntity<PostSpotsResponse> getPostSpots(
+            @PathVariable UUID id,
+            HttpServletRequest httpRequest) {
+        String requestId = AuthUtil.getRequestId(httpRequest);
+        PostSpotsResponse response = spotPostService.getSpotsByPostId(id, requestId);
+        return ResponseEntity.ok(response);
     }
 
 

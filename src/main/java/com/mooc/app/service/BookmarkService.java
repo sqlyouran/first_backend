@@ -4,10 +4,13 @@ import com.mooc.app.dto.response.BookmarkListResponse;
 import com.mooc.app.dto.response.BookmarkListResponse.BookmarkItemResponse;
 import com.mooc.app.dto.response.BookmarkResponse;
 import com.mooc.app.entity.BookmarkEntity;
+import com.mooc.app.entity.EntityType;
 import com.mooc.app.entity.PostEntity;
+import com.mooc.app.entity.SpotEntity;
 import com.mooc.app.exception.PostException;
 import com.mooc.app.repository.BookmarkRepository;
 import com.mooc.app.repository.PostRepository;
+import com.mooc.app.repository.SpotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -26,59 +29,84 @@ public class BookmarkService {
 
     private final BookmarkRepository bookmarkRepository;
     private final PostRepository postRepository;
+    private final SpotRepository spotRepository;
 
-    public BookmarkService(BookmarkRepository bookmarkRepository, PostRepository postRepository) {
+    public BookmarkService(BookmarkRepository bookmarkRepository, PostRepository postRepository, SpotRepository spotRepository) {
         this.bookmarkRepository = bookmarkRepository;
         this.postRepository = postRepository;
+        this.spotRepository = spotRepository;
     }
 
-    public BookmarkResponse getBookmarkStatus(UUID postId, Optional<UUID> optionalUserId, String requestId) {
-        postRepository.findByIdAndDeletedFalse(postId)
-                .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+    public BookmarkResponse getBookmarkStatus(UUID entityId, EntityType entityType, Optional<UUID> optionalUserId, String requestId) {
+        validateEntityExists(entityId, entityType);
 
         if (optionalUserId.isEmpty()) {
             return new BookmarkResponse(requestId, false);
         }
 
-        boolean bookmarked = bookmarkRepository.findByPostIdAndUserId(postId, optionalUserId.get()).isPresent();
+        boolean bookmarked = bookmarkRepository.findByEntityIdAndEntityTypeAndUserId(entityId, entityType, optionalUserId.get()).isPresent();
         return new BookmarkResponse(requestId, bookmarked);
     }
 
-    public BookmarkResponse toggleBookmark(UUID postId, UUID userId, String requestId) {
-        postRepository.findByIdAndDeletedFalse(postId)
-                .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+    public BookmarkResponse toggleBookmark(UUID entityId, EntityType entityType, UUID userId, String requestId) {
+        validateEntityExists(entityId, entityType);
 
-        Optional<BookmarkEntity> existing = bookmarkRepository.findByPostIdAndUserId(postId, userId);
+        Optional<BookmarkEntity> existing = bookmarkRepository.findByEntityIdAndEntityTypeAndUserId(entityId, entityType, userId);
 
         if (existing.isPresent()) {
             bookmarkRepository.delete(existing.get());
             return new BookmarkResponse(requestId, false);
         } else {
             BookmarkEntity bookmark = new BookmarkEntity();
-            bookmark.setPostId(postId);
+            bookmark.setEntityId(entityId);
+            bookmark.setEntityType(entityType);
             bookmark.setUserId(userId);
             bookmarkRepository.save(bookmark);
             return new BookmarkResponse(requestId, true);
         }
     }
 
-    public BookmarkListResponse listBookmarks(UUID userId, int page, int size, String requestId) {
-        Page<BookmarkEntity> result = bookmarkRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page - 1, size));
+    public BookmarkListResponse listBookmarks(UUID userId, int page, int size, EntityType entityType, String requestId) {
+        Page<BookmarkEntity> result;
+        if (entityType != null) {
+            result = bookmarkRepository.findByUserIdAndEntityTypeOrderByCreatedAtDesc(userId, entityType, PageRequest.of(page - 1, size));
+        } else {
+            result = bookmarkRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page - 1, size));
+        }
 
         List<BookmarkItemResponse> items = result.getContent().stream()
                 .map(b -> {
-                    String postTitle = postRepository.findByIdAndDeletedFalse(b.getPostId())
-                            .map(PostEntity::getTitle)
-                            .orElse("[已删除的帖子]");
+                    String title = resolveEntityTitle(b.getEntityId(), b.getEntityType());
                     return new BookmarkItemResponse(
                             b.getId().toString(),
-                            b.getPostId().toString(),
-                            postTitle,
+                            b.getEntityId().toString(),
+                            b.getEntityType().name().toLowerCase(),
+                            title,
                             b.getCreatedAt().toString()
                     );
                 })
                 .toList();
 
         return new BookmarkListResponse(requestId, items, result.getTotalElements(), page, size);
+    }
+
+    private void validateEntityExists(UUID entityId, EntityType entityType) {
+        switch (entityType) {
+            case POST -> postRepository.findByIdAndDeletedFalse(entityId)
+                    .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+            case SPOT -> spotRepository.findByIdAndDeletedFalse(entityId)
+                    .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Spot not found"));
+        }
+    }
+
+    private String resolveEntityTitle(UUID entityId, EntityType entityType) {
+        return switch (entityType) {
+            case POST -> postRepository.findByIdAndDeletedFalse(entityId)
+                    .map(PostEntity::getTitle)
+                    .orElse("[已删除的帖子]");
+            case SPOT -> spotRepository.findByIdAndDeletedFalse(entityId)
+                    .map(SpotEntity::getName)
+                    .orElse("[已删除的景点]");
+        };
     }
 }

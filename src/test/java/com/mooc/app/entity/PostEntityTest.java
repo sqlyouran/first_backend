@@ -68,6 +68,7 @@ class PostEntityTest {
     private PostEntity createSamplePost() {
         PostEntity post = new PostEntity();
         post.setTitle("Test Post");
+        post.setSlug("test-post-" + UUID.randomUUID().toString().substring(0, 8));
         post.setContent("# Hello\nThis is markdown content.");
         post.setCoverImage("https://example.com/cover.jpg");
         post.setAuthorId(UUID.randomUUID());

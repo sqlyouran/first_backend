@@ -7,8 +7,11 @@ public class CommentResponse extends BaseResponse {
     @JsonProperty("id")
     private final String id;
 
-    @JsonProperty("post_id")
-    private final String postId;
+    @JsonProperty("entity_id")
+    private final String entityId;
+
+    @JsonProperty("entity_type")
+    private final String entityType;
 
     @JsonProperty("user_id")
     private final String userId;
@@ -25,11 +28,12 @@ public class CommentResponse extends BaseResponse {
     @JsonProperty("deleted")
     private final boolean deleted;
 
-    public CommentResponse(String requestId, String id, String postId, String userId,
+    public CommentResponse(String requestId, String id, String entityId, String entityType, String userId,
                            String content, String parentCommentId, String createdAt, boolean deleted) {
         super(requestId);
         this.id = id;
-        this.postId = postId;
+        this.entityId = entityId;
+        this.entityType = entityType;
         this.userId = userId;
         this.content = content;
         this.parentCommentId = parentCommentId;
@@ -38,7 +42,8 @@ public class CommentResponse extends BaseResponse {
     }
 
     public String getId() { return id; }
-    public String getPostId() { return postId; }
+    public String getEntityId() { return entityId; }
+    public String getEntityType() { return entityType; }
     public String getUserId() { return userId; }
     public String getContent() { return content; }
     public String getParentCommentId() { return parentCommentId; }

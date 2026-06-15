@@ -12,10 +12,15 @@ spring:
       ddl-auto: create-drop
     show-sql: false
     open-in-view: false
+    defer-datasource-initialization: true
     properties:
       hibernate:
         type:
           preferred_uuid_jdbc_type: CHAR
+
+  sql:
+    init:
+      mode: never
 
 logging:
   file:

@@ -90,8 +90,9 @@ class BookmarkControllerTest {
                 .header("Authorization", "Bearer " + userToken))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.items.length()").value(1))
-            .andExpect(jsonPath("$.items[0].post_id").value(postId))
-            .andExpect(jsonPath("$.items[0].post_title").value("Bookmark Test Post"))
+            .andExpect(jsonPath("$.items[0].entity_id").value(postId))
+            .andExpect(jsonPath("$.items[0].entity_type").value("post"))
+            .andExpect(jsonPath("$.items[0].entity_title").value("Bookmark Test Post"))
             .andExpect(jsonPath("$.total").value(1))
             .andExpect(jsonPath("$.page").value(1));
     }
@@ -148,6 +149,31 @@ class BookmarkControllerTest {
                 .header("Authorization", "Bearer " + userToken))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.error_code").value("not_found"));
+    }
+
+    @Test
+    void listBookmarks_filterByEntityType_returnsFiltered() throws Exception {
+        mockMvc.perform(post("/api/posts/" + postId + "/bookmark")
+                .header("Authorization", "Bearer " + userToken))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/bookmarks?entity_type=POST")
+                .header("Authorization", "Bearer " + userToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items.length()").value(1));
+
+        mockMvc.perform(get("/api/bookmarks?entity_type=SPOT")
+                .header("Authorization", "Bearer " + userToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void listBookmarks_invalidEntityType_returns400() throws Exception {
+        mockMvc.perform(get("/api/bookmarks?entity_type=INVALID")
+                .header("Authorization", "Bearer " + userToken))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error_code").value("validation_error"));
     }
 
     // === Helpers ===

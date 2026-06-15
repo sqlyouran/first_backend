@@ -4,9 +4,11 @@ import com.mooc.app.dto.CreateCommentRequest;
 import com.mooc.app.dto.response.CommentListResponse;
 import com.mooc.app.dto.response.CommentResponse;
 import com.mooc.app.entity.CommentEntity;
+import com.mooc.app.entity.EntityType;
 import com.mooc.app.exception.PostException;
 import com.mooc.app.repository.CommentRepository;
 import com.mooc.app.repository.PostRepository;
+import com.mooc.app.repository.SpotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -24,15 +26,16 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final SpotRepository spotRepository;
 
-    public CommentService(CommentRepository commentRepository, PostRepository postRepository) {
+    public CommentService(CommentRepository commentRepository, PostRepository postRepository, SpotRepository spotRepository) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
+        this.spotRepository = spotRepository;
     }
 
-    public CommentResponse createComment(UUID postId, UUID userId, CreateCommentRequest request, String requestId) {
-        postRepository.findByIdAndDeletedFalse(postId)
-                .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+    public CommentResponse createComment(UUID entityId, EntityType entityType, UUID userId, CreateCommentRequest request, String requestId) {
+        validateEntityExists(entityId, entityType);
 
         if (request.parentCommentId() != null) {
             commentRepository.findByIdAndDeletedFalse(request.parentCommentId())
@@ -40,7 +43,8 @@ public class CommentService {
         }
 
         CommentEntity comment = new CommentEntity();
-        comment.setPostId(postId);
+        comment.setEntityId(entityId);
+        comment.setEntityType(entityType);
         comment.setUserId(userId);
         comment.setContent(request.content());
         comment.setParentCommentId(request.parentCommentId());
@@ -49,11 +53,10 @@ public class CommentService {
         return toCommentResponse(saved, requestId);
     }
 
-    public CommentListResponse listTopLevelComments(UUID postId, int page, int size, String requestId) {
-        postRepository.findByIdAndDeletedFalse(postId)
-                .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+    public CommentListResponse listTopLevelComments(UUID entityId, EntityType entityType, int page, int size, String requestId) {
+        validateEntityExists(entityId, entityType);
 
-        Page<CommentEntity> result = commentRepository.findTopLevelByPostId(postId, PageRequest.of(page - 1, size));
+        Page<CommentEntity> result = commentRepository.findTopLevelByEntity(entityId, entityType, PageRequest.of(page - 1, size));
         List<CommentResponse> items = result.getContent().stream()
                 .map(c -> toCommentResponse(c, requestId))
                 .toList();
@@ -80,12 +83,22 @@ public class CommentService {
         commentRepository.save(comment);
     }
 
+    private void validateEntityExists(UUID entityId, EntityType entityType) {
+        switch (entityType) {
+            case POST -> postRepository.findByIdAndDeletedFalse(entityId)
+                    .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
+            case SPOT -> spotRepository.findByIdAndDeletedFalse(entityId)
+                    .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Spot not found"));
+        }
+    }
+
     private CommentResponse toCommentResponse(CommentEntity comment, String requestId) {
         String content = comment.isDeleted() ? "[已删除]" : comment.getContent();
         return new CommentResponse(
                 requestId,
                 comment.getId().toString(),
-                comment.getPostId().toString(),
+                comment.getEntityId().toString(),
+                comment.getEntityType().name().toLowerCase(),
                 comment.getUserId().toString(),
                 content,
                 comment.getParentCommentId() != null ? comment.getParentCommentId().toString() : null,

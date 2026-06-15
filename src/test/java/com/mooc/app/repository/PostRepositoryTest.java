@@ -157,6 +157,8 @@ class PostRepositoryTest {
         post.setContent("Content for " + title);
         post.setAuthorId(author);
         post.setStatus(PostStatus.PUBLISHED);
+        // Set preliminary slug before persist to satisfy validation
+        post.setSlug(title.toLowerCase().replaceAll("[^a-z0-9]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8));
         post = em.persist(post);
 
         for (int i = 0; i < votes; i++) {
@@ -169,7 +171,8 @@ class PostRepositoryTest {
 
         for (int i = 0; i < comments; i++) {
             CommentEntity comment = new CommentEntity();
-            comment.setPostId(post.getId());
+            comment.setEntityId(post.getId());
+            comment.setEntityType(EntityType.POST);
             comment.setUserId(UUID.randomUUID());
             comment.setContent("Comment " + i);
             em.persist(comment);
