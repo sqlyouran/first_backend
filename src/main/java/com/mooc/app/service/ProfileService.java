@@ -13,8 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import org.springframework.dao.DataIntegrityViolationException;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +24,6 @@ public class ProfileService {
 
     private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9_]{3,20}$");
-    private static final Pattern NICKNAME_INVALID_CHARS = Pattern.compile("[<>\"]");
 
     private final UserRepository userRepository;
 
@@ -36,10 +33,10 @@ public class ProfileService {
 
     public ProfileResponse getMyProfile(UUID userId, String requestId) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ProfileException(HttpStatus.NOT_FOUND, "not_found", "User not found"));
+                .orElseThrow(() -> new ProfileException(HttpStatus.NOT_FOUND, "user_not_found", "User not found"));
 
         if (user.isDeleted() || user.getState() == UserEntity.State.deleted) {
-            throw new ProfileException(HttpStatus.NOT_FOUND, "not_found", "User not found");
+            throw new ProfileException(HttpStatus.NOT_FOUND, "user_not_found", "User not found");
         }
 
         return toProfileResponse(user, requestId);
@@ -47,10 +44,10 @@ public class ProfileService {
 
     public ProfileResponse updateMyProfile(UUID userId, UpdateProfileRequest request, String requestId) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ProfileException(HttpStatus.NOT_FOUND, "not_found", "User not found"));
+                .orElseThrow(() -> new ProfileException(HttpStatus.NOT_FOUND, "user_not_found", "User not found"));
 
         if (user.isDeleted() || user.getState() == UserEntity.State.deleted) {
-            throw new ProfileException(HttpStatus.NOT_FOUND, "not_found", "User not found");
+            throw new ProfileException(HttpStatus.NOT_FOUND, "user_not_found", "User not found");
         }
 
         // Username: set-once, immutable after set. If already set and request includes it, silently ignore.
@@ -71,69 +68,45 @@ public class ProfileService {
             // If user.getUsername() != null, silently ignore
         }
 
-        // Nickname: null = no change, "" = clear to null, non-empty = validate + set
         if (request.nickname() != null) {
-            String trimmed = request.nickname().trim();
-            if (trimmed.isEmpty()) {
-                user.setNickname(null);
-            } else {
-                if (trimmed.length() < 2) {
-                    throw new ProfileException(HttpStatus.UNPROCESSABLE_ENTITY, "validation_error",
-                            "Nickname must be at least 2 characters");
-                }
-                if (NICKNAME_INVALID_CHARS.matcher(trimmed).find()) {
-                    throw new ProfileException(HttpStatus.UNPROCESSABLE_ENTITY, "validation_error",
-                            "Nickname must not contain <, > or \" characters");
-                }
-                user.setNickname(trimmed);
-            }
+            user.setNickname(request.nickname());
         }
 
-        // Optional fields: null = no change, "" / empty = clear to null, non-empty = set
         if (request.avatarUrl() != null) {
-            user.setAvatarUrl(request.avatarUrl().isBlank() ? null : request.avatarUrl());
+            user.setAvatarUrl(request.avatarUrl());
         }
 
         if (request.bio() != null) {
-            user.setBio(request.bio().isEmpty() ? null : request.bio());
+            user.setBio(request.bio());
         }
 
         if (request.interestTags() != null) {
-            if (request.interestTags().isEmpty()) {
-                user.setInterestTags(null);
-            } else {
-                // Validate each tag
-                if (request.interestTags().size() > 10) {
-                    throw new ProfileException(HttpStatus.UNPROCESSABLE_ENTITY, "validation_error",
-                            "Maximum 10 interest tags allowed");
-                }
-                for (String tag : request.interestTags()) {
-                    if (!InterestTag.isValid(tag)) {
-                        throw new ProfileException(HttpStatus.UNPROCESSABLE_ENTITY, "validation_error",
-                                "Invalid interest tag: " + tag);
-                    }
-                }
-                user.setInterestTags(new ArrayList<>(request.interestTags()));
+            // Validate each tag
+            if (request.interestTags().size() > 10) {
+                throw new ProfileException(HttpStatus.UNPROCESSABLE_ENTITY, "validation_error",
+                        "Maximum 10 interest tags allowed");
             }
+            for (String tag : request.interestTags()) {
+                if (!InterestTag.isValid(tag)) {
+                    throw new ProfileException(HttpStatus.UNPROCESSABLE_ENTITY, "validation_error",
+                            "Invalid interest tag: " + tag);
+                }
+            }
+            user.setInterestTags(new ArrayList<>(request.interestTags()));
         }
 
-        try {
-            UserEntity saved = userRepository.save(user);
-            log.info("Profile updated for user {}", userId);
-            return toProfileResponse(saved, requestId);
-        } catch (DataIntegrityViolationException e) {
-            throw new ProfileException(HttpStatus.CONFLICT, "username_taken",
-                    "Username is already taken");
-        }
+        UserEntity saved = userRepository.save(user);
+        log.info("Profile updated for user {}", userId);
+        return toProfileResponse(saved, requestId);
     }
 
     public PublicProfileResponse getPublicProfile(String username, String requestId) {
         UserEntity user = userRepository.findByUsernameAndDeletedFalse(username)
-                .orElseThrow(() -> new ProfileException(HttpStatus.NOT_FOUND, "not_found",
+                .orElseThrow(() -> new ProfileException(HttpStatus.NOT_FOUND, "user_not_found",
                         "User not found"));
 
         if (user.getState() == UserEntity.State.deleted) {
-            throw new ProfileException(HttpStatus.NOT_FOUND, "not_found", "User not found");
+            throw new ProfileException(HttpStatus.NOT_FOUND, "user_not_found", "User not found");
         }
 
         return toPublicProfileResponse(user, requestId);

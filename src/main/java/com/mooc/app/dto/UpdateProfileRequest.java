@@ -1,6 +1,5 @@
 package com.mooc.app.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -14,12 +13,10 @@ public record UpdateProfileRequest(
     String nickname,
 
     @Size(max = 2048, message = "Avatar URL must not exceed 2048 characters")
-    @JsonProperty("avatar_url")
     String avatarUrl,
 
     @Size(max = 500, message = "Bio must not exceed 500 characters")
     String bio,
 
-    @JsonProperty("interest_tags")
     List<String> interestTags
 ) {}

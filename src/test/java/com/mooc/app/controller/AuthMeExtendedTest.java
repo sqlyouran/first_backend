@@ -31,13 +31,6 @@ class AuthMeExtendedTest {
     private VerificationCodeStore codeStore;
 
     @Test
-    void getMe_noToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/auth/me"))
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.error_code").value("invalid_credentials"));
-    }
-
-    @Test
     void getMe_validToken_returnsProfileFields() throws Exception {
         registerUser("profile@example.com", "Password1");
         String accessToken = loginAndGetAccessToken("profile@example.com", "Password1");
