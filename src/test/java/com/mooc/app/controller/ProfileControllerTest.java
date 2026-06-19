@@ -121,6 +121,34 @@ class ProfileControllerTest {
     }
 
     @Test
+    void updateProfile_nicknameTooShort_returns422() throws Exception {
+        registerUser("shortnick@example.com", "Password1");
+        String token = loginAndGetAccessToken("shortnick@example.com", "Password1");
+
+        mockMvc.perform(put("/api/users/me/profile")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new UpdateProfileRequest(
+                        null, "A", null, null, null))))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.error_code").value("validation_error"));
+    }
+
+    @Test
+    void updateProfile_nicknameWithSpecialChars_returns422() throws Exception {
+        registerUser("specialchars@example.com", "Password1");
+        String token = loginAndGetAccessToken("specialchars@example.com", "Password1");
+
+        mockMvc.perform(put("/api/users/me/profile")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new UpdateProfileRequest(
+                        null, "Bad<Nick>", null, null, null))))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.error_code").value("validation_error"));
+    }
+
+    @Test
     void updateProfile_nicknameTooLong_returns422() throws Exception {
         registerUser("longnick@example.com", "Password1");
         String token = loginAndGetAccessToken("longnick@example.com", "Password1");
@@ -194,15 +222,16 @@ class ProfileControllerTest {
                 .content(objectMapper.writeValueAsString(new UpdateProfileRequest(
                         "clearuser", "Nick", null, "Bio text", List.of("history")))));
 
-        // Now clear nickname and bio by setting them to empty strings
+        // Now clear nickname, bio, and interest_tags
         mockMvc.perform(put("/api/users/me/profile")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new UpdateProfileRequest(
-                        null, "", null, "", null))))
+                        null, "", null, "", List.of()))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nickname").value(""))
-            .andExpect(jsonPath("$.bio").value(""));
+            .andExpect(jsonPath("$.nickname").isEmpty())
+            .andExpect(jsonPath("$.bio").isEmpty())
+            .andExpect(jsonPath("$.interest_tags").isEmpty());
     }
 
     @Test
@@ -260,7 +289,7 @@ class ProfileControllerTest {
     void getPublicProfile_notFound_returns404() throws Exception {
         mockMvc.perform(get("/api/users/nonexistent_user"))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.error_code").value("user_not_found"));
+            .andExpect(jsonPath("$.error_code").value("not_found"));
     }
 
     @Test
@@ -282,7 +311,7 @@ class ProfileControllerTest {
         // Try to access public profile
         mockMvc.perform(get("/api/users/deleted_user"))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.error_code").value("user_not_found"));
+            .andExpect(jsonPath("$.error_code").value("not_found"));
     }
 
     // === GET /api/users/interest-tags ===

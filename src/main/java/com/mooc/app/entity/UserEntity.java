@@ -30,7 +30,7 @@ public class UserEntity extends BaseEntity {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
-    @Column(unique = true, length = 30)
+    @Column(unique = true, length = 20)
     private String username;
 
     @Column(length = 30)
