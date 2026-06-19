@@ -1,7 +1,10 @@
 package com.mooc.app.entity;
 
+import com.mooc.app.converter.StringListConverter;
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -27,6 +30,22 @@ public class UserEntity extends BaseEntity {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
+    @Column(unique = true, length = 20)
+    private String username;
+
+    @Column(length = 30)
+    private String nickname;
+
+    @Column(name = "avatar_url", length = 2048)
+    private String avatarUrl;
+
+    @Column(length = 500)
+    private String bio;
+
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "interest_tags", columnDefinition = "TEXT")
+    private List<String> interestTags = new ArrayList<>();
+
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
@@ -41,4 +60,19 @@ public class UserEntity extends BaseEntity {
 
     public Instant getLockedUntil() { return lockedUntil; }
     public void setLockedUntil(Instant lockedUntil) { this.lockedUntil = lockedUntil; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public List<String> getInterestTags() { return interestTags; }
+    public void setInterestTags(List<String> interestTags) { this.interestTags = interestTags != null ? interestTags : new ArrayList<>(); }
 }

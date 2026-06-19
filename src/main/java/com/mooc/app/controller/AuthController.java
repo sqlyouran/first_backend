@@ -52,11 +52,10 @@ public class AuthController {
         String ip = httpRequest.getRemoteAddr();
         AuthService.LoginResult result = authService.login(request.email(), request.password(), ip);
 
-        // Set refresh_token cookie
         Cookie cookie = new Cookie("refresh_token", result.refreshToken());
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setPath("/api/auth");
+        cookie.setPath("/");
         cookie.setMaxAge(604800);
         cookie.setAttribute("SameSite", "Strict");
         httpResponse.addCookie(cookie);
@@ -80,7 +79,6 @@ public class AuthController {
             String requestId = getRequestId(httpRequest);
             return ResponseEntity.ok(new RefreshResponse(requestId, result.accessToken(), result.expiresIn()));
         } catch (AuthException ex) {
-            // Clear stale cookie so middleware stops redirecting away from /login
             clearRefreshCookie(httpResponse);
             throw ex;
         }
@@ -96,11 +94,10 @@ public class AuthController {
         }
         authService.logout(refreshToken);
 
-        // Clear cookie
         Cookie cookie = new Cookie("refresh_token", "");
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setPath("/api/auth");
+        cookie.setPath("/");
         cookie.setMaxAge(0);
         cookie.setAttribute("SameSite", "Strict");
         httpResponse.addCookie(cookie);
@@ -121,7 +118,10 @@ public class AuthController {
             info.id().toString(),
             info.email(),
             info.state(),
-            info.createdAt().toString()
+            info.createdAt().toString(),
+            info.username(),
+            info.nickname(),
+            info.avatarUrl()
         ));
     }
 
@@ -146,7 +146,7 @@ public class AuthController {
         Cookie cookie = new Cookie("refresh_token", "");
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setPath("/api/auth");
+        cookie.setPath("/");
         cookie.setMaxAge(0);
         cookie.setAttribute("SameSite", "Strict");
         httpResponse.addCookie(cookie);
