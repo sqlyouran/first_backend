@@ -3,10 +3,7 @@ package com.mooc.app.service;
 import com.mooc.app.dto.response.BookmarkListResponse;
 import com.mooc.app.dto.response.BookmarkListResponse.BookmarkItemResponse;
 import com.mooc.app.dto.response.BookmarkResponse;
-import com.mooc.app.entity.BookmarkEntity;
-import com.mooc.app.entity.EntityType;
-import com.mooc.app.entity.PostEntity;
-import com.mooc.app.entity.SpotEntity;
+import com.mooc.app.entity.*;
 import com.mooc.app.exception.PostException;
 import com.mooc.app.repository.BookmarkRepository;
 import com.mooc.app.repository.PostRepository;
@@ -30,11 +27,14 @@ public class BookmarkService {
     private final BookmarkRepository bookmarkRepository;
     private final PostRepository postRepository;
     private final SpotRepository spotRepository;
+    private final NotificationService notificationService;
 
-    public BookmarkService(BookmarkRepository bookmarkRepository, PostRepository postRepository, SpotRepository spotRepository) {
+    public BookmarkService(BookmarkRepository bookmarkRepository, PostRepository postRepository,
+                            SpotRepository spotRepository, NotificationService notificationService) {
         this.bookmarkRepository = bookmarkRepository;
         this.postRepository = postRepository;
         this.spotRepository = spotRepository;
+        this.notificationService = notificationService;
     }
 
     public BookmarkResponse getBookmarkStatus(UUID entityId, EntityType entityType, Optional<UUID> optionalUserId, String requestId) {
@@ -55,6 +55,11 @@ public class BookmarkService {
 
         if (existing.isPresent()) {
             bookmarkRepository.delete(existing.get());
+            if (entityType == EntityType.POST) {
+                postRepository.findByIdAndDeletedFalse(entityId).ifPresent(post ->
+                        notificationService.deleteNotification(post.getAuthorId(), userId,
+                                NotificationType.POST_BOOKMARKED, entityId));
+            }
             return new BookmarkResponse(requestId, false);
         } else {
             BookmarkEntity bookmark = new BookmarkEntity();
@@ -62,6 +67,11 @@ public class BookmarkService {
             bookmark.setEntityType(entityType);
             bookmark.setUserId(userId);
             bookmarkRepository.save(bookmark);
+            if (entityType == EntityType.POST) {
+                postRepository.findByIdAndDeletedFalse(entityId).ifPresent(post ->
+                        notificationService.createNotification(post.getAuthorId(), userId,
+                                NotificationType.POST_BOOKMARKED, entityId, "post", null));
+            }
             return new BookmarkResponse(requestId, true);
         }
     }

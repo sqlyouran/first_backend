@@ -2,6 +2,8 @@ package com.mooc.app.service;
 
 import com.mooc.app.dto.response.VoteResponse;
 import com.mooc.app.dto.response.VoteStatsResponse;
+import com.mooc.app.entity.NotificationType;
+import com.mooc.app.entity.PostEntity;
 import com.mooc.app.entity.VoteEntity;
 import com.mooc.app.entity.VoteType;
 import com.mooc.app.exception.PostException;
@@ -22,14 +24,16 @@ public class VoteService {
 
     private final VoteRepository voteRepository;
     private final PostRepository postRepository;
+    private final NotificationService notificationService;
 
-    public VoteService(VoteRepository voteRepository, PostRepository postRepository) {
+    public VoteService(VoteRepository voteRepository, PostRepository postRepository, NotificationService notificationService) {
         this.voteRepository = voteRepository;
         this.postRepository = postRepository;
+        this.notificationService = notificationService;
     }
 
     public VoteResponse vote(UUID postId, UUID userId, String voteTypeStr, String requestId) {
-        postRepository.findByIdAndDeletedFalse(postId)
+        PostEntity post = postRepository.findByIdAndDeletedFalse(postId)
                 .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
 
         VoteType voteType;
@@ -48,12 +52,20 @@ public class VoteService {
             vote.setUserId(userId);
             vote.setVoteType(voteType);
             voteRepository.save(vote);
+            if (voteType == VoteType.UP) {
+                notificationService.createNotification(post.getAuthorId(), userId,
+                        NotificationType.POST_LIKED, postId, "post", null);
+            }
             return new VoteResponse(requestId, voteType.name().toLowerCase());
         }
 
         VoteEntity existingVote = existing.get();
         if (existingVote.getVoteType() == voteType) {
             voteRepository.delete(existingVote);
+            if (voteType == VoteType.UP) {
+                notificationService.deleteNotification(post.getAuthorId(), userId,
+                        NotificationType.POST_LIKED, postId);
+            }
             return new VoteResponse(requestId, null);
         } else {
             existingVote.setVoteType(voteType);
