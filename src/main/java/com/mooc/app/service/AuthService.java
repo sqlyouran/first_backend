@@ -54,7 +54,6 @@ public class AuthService {
 
         String normalizedEmail = email.toLowerCase();
 
-        // Silent no-op if email rate limited (anti-enumeration)
         if (rateLimitService.isSendCodeEmailRateLimited(normalizedEmail)) {
             return;
         }
@@ -72,7 +71,6 @@ public class AuthService {
 
         String normalizedEmail = email.toLowerCase();
 
-        // Verify code
         Optional<String> storedCode = codeStore.getCode(normalizedEmail);
         if (storedCode.isEmpty()) {
             if (codeStore.isExpired(normalizedEmail)) {
@@ -87,13 +85,11 @@ public class AuthService {
                     "Invalid verification code");
         }
 
-        // Check email uniqueness
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new AuthException(HttpStatus.CONFLICT, "email_already_registered",
                     "Email is already registered");
         }
 
-        // Create user
         UserEntity user = new UserEntity();
         user.setEmail(normalizedEmail);
         user.setPasswordHash(passwordEncoder.encode(password));
@@ -119,14 +115,12 @@ public class AuthService {
 
         UserEntity user = optUser.get();
 
-        // State machine checks
         if (user.getState() == UserEntity.State.deleted) {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "invalid_credentials",
                     "Email or password is incorrect");
         }
 
         if (user.getState() == UserEntity.State.locked) {
-            // Check if lock has expired
             if (user.getLockedUntil() != null && Instant.now().isAfter(user.getLockedUntil())) {
                 user.setState(UserEntity.State.active);
                 user.setFailedAttempts(0);
@@ -143,7 +137,6 @@ public class AuthService {
                     "Email is not verified");
         }
 
-        // Password check
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             user.setFailedAttempts(user.getFailedAttempts() + 1);
             if (user.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
@@ -155,7 +148,6 @@ public class AuthService {
                     "Email or password is incorrect");
         }
 
-        // Reset failed attempts on success
         if (user.getFailedAttempts() > 0) {
             user.setFailedAttempts(0);
             userRepository.save(user);
@@ -208,7 +200,15 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED,
                         "invalid_credentials", "Invalid token"));
 
-        return new UserInfo(user.getId(), user.getEmail(), user.getState().name(), user.getCreatedAt());
+        return new UserInfo(
+                user.getId(),
+                user.getEmail(),
+                user.getState().name(),
+                user.getCreatedAt(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getAvatarUrl()
+        );
     }
 
     public void deleteMe(String accessToken) {
@@ -230,8 +230,8 @@ public class AuthService {
         return String.valueOf(code);
     }
 
-    // Result records
     public record LoginResult(String accessToken, String refreshToken, long expiresIn) {}
     public record RefreshResult(String accessToken, long expiresIn) {}
-    public record UserInfo(UUID id, String email, String state, Instant createdAt) {}
+    public record UserInfo(UUID id, String email, String state, Instant createdAt,
+                           String username, String nickname, String avatarUrl) {}
 }

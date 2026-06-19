@@ -11,12 +11,22 @@ public class UserInfoResponse extends BaseResponse {
     @JsonProperty("created_at")
     private final String createdAt;
 
-    public UserInfoResponse(String requestId, String id, String email, String state, String createdAt) {
+    private final String username;
+    private final String nickname;
+
+    @JsonProperty("avatar_url")
+    private final String avatarUrl;
+
+    public UserInfoResponse(String requestId, String id, String email, String state, String createdAt,
+                            String username, String nickname, String avatarUrl) {
         super(requestId);
         this.id = id;
         this.email = email;
         this.state = state;
         this.createdAt = createdAt;
+        this.username = username;
+        this.nickname = nickname;
+        this.avatarUrl = avatarUrl;
     }
 
     public String getId() {
@@ -33,5 +43,17 @@ public class UserInfoResponse extends BaseResponse {
 
     public String getCreatedAt() {
         return createdAt;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 }
