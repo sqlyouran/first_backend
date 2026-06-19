@@ -17,6 +17,15 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false, unique = true, length = 254)
     private String email;
 
+    @Column(unique = true, length = 20)
+    private String username;
+
+    @Column(length = 30)
+    private String nickname;
+
+    @Column(name = "avatar_url", length = 2048)
+    private String avatarUrl;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -30,15 +39,6 @@ public class UserEntity extends BaseEntity {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
-    @Column(unique = true, length = 20)
-    private String username;
-
-    @Column(length = 30)
-    private String nickname;
-
-    @Column(name = "avatar_url", length = 2048)
-    private String avatarUrl;
-
     @Column(length = 500)
     private String bio;
 
@@ -48,6 +48,15 @@ public class UserEntity extends BaseEntity {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
@@ -60,15 +69,6 @@ public class UserEntity extends BaseEntity {
 
     public Instant getLockedUntil() { return lockedUntil; }
     public void setLockedUntil(Instant lockedUntil) { this.lockedUntil = lockedUntil; }
-
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-
-    public String getNickname() { return nickname; }
-    public void setNickname(String nickname) { this.nickname = nickname; }
-
-    public String getAvatarUrl() { return avatarUrl; }
-    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }

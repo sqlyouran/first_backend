@@ -1,6 +1,6 @@
 package com.mooc.app.util;
 
-import com.mooc.app.exception.PostException;
+import com.mooc.app.exception.AuthException;
 import com.mooc.app.filter.RequestIdFilter;
 import com.mooc.app.service.JwtService;
 import io.jsonwebtoken.Claims;
@@ -17,14 +17,14 @@ public final class AuthUtil {
     public static UUID requireUserId(HttpServletRequest request, JwtService jwtService) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new PostException(HttpStatus.UNAUTHORIZED, "unauthorized",
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "unauthorized",
                     "Missing or invalid authorization header");
         }
         String token = authHeader.substring(7);
         return jwtService.parseToken(token)
                 .map(Claims::getSubject)
                 .map(UUID::fromString)
-                .orElseThrow(() -> new PostException(HttpStatus.UNAUTHORIZED, "unauthorized",
+                .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "unauthorized",
                         "Invalid or expired token"));
     }
 
