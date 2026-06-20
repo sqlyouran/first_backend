@@ -171,7 +171,7 @@ class NotificationControllerTest {
         mockMvc.perform(get("/api/notifications/unread-count")
                 .header("Authorization", "Bearer " + userBToken))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.unread_count").value(2))
+            .andExpect(jsonPath("$.count").value(2))
             .andExpect(jsonPath("$.request_id").isNotEmpty());
     }
 
@@ -184,7 +184,7 @@ class NotificationControllerTest {
         mockMvc.perform(get("/api/notifications/unread-count")
                 .header("Authorization", "Bearer " + userAToken))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.unread_count").value(0));
+            .andExpect(jsonPath("$.count").value(0));
     }
 
     @Test
