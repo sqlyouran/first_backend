@@ -88,7 +88,7 @@ public class MessageService {
                 ? conversation.getUserBId() : conversation.getUserAId();
         UserEntity recipient = userRepository.findById(recipientId).orElse(null);
         if (recipient != null && recipient.getState() == UserEntity.State.deleted) {
-            throw new MessageException(HttpStatus.UNPROCESSABLE_ENTITY, "recipient_unavailable",
+            throw new MessageException(HttpStatus.UNPROCESSABLE_ENTITY, "user_unavailable",
                     "Recipient account has been deleted");
         }
 
@@ -111,7 +111,9 @@ public class MessageService {
         log.info("Message sent [conversationId={}, senderId={}, messageId={}]",
                 conversationId, senderId, message.getId());
 
-        return new SendMessageResponse(requestId, message.getId().toString());
+        return new SendMessageResponse(requestId,
+                new MessageItemResponse(message.getId().toString(), message.getSenderId().toString(),
+                        message.getContent(), message.isRead(), message.getCreatedAt()));
     }
 
     @Transactional

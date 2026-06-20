@@ -55,7 +55,7 @@ public class ConversationService {
         }
 
         if (recipient.getState() == UserEntity.State.deleted) {
-            throw new MessageException(HttpStatus.UNPROCESSABLE_ENTITY, "recipient_unavailable",
+            throw new MessageException(HttpStatus.UNPROCESSABLE_ENTITY, "user_unavailable",
                     "Recipient account has been deleted");
         }
 
@@ -115,8 +115,10 @@ public class ConversationService {
 
             Page<MessageEntity> lastMessagePage = messageRepository.findByConversation(
                     conv.getId(), PageRequest.of(0, 1));
-            String lastMessageContent = lastMessagePage.hasContent()
+            String rawContent = lastMessagePage.hasContent()
                     ? lastMessagePage.getContent().get(0).getContent() : "";
+            String lastMessageContent = rawContent.length() > 50
+                    ? rawContent.substring(0, 50) : rawContent;
 
             long unreadCount = messageRepository.countByConversationIdAndSenderIdAndReadFalse(
                     conv.getId(), otherUserId);
@@ -128,6 +130,34 @@ public class ConversationService {
 
         return new ConversationListResponse(requestId, items,
                 conversationPage.getTotalElements(), page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public ConversationDetailResponse getConversationDetail(UUID conversationId, UUID userId, String requestId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new MessageException(HttpStatus.NOT_FOUND, "not_found",
+                        "Conversation not found"));
+
+        if (!conversation.getUserAId().equals(userId) && !conversation.getUserBId().equals(userId)) {
+            throw new MessageException(HttpStatus.FORBIDDEN, "access_denied",
+                    "You are not a participant of this conversation");
+        }
+
+        UUID otherUserId = conversation.getUserAId().equals(userId) ? conversation.getUserBId() : conversation.getUserAId();
+        UserEntity otherUser = userRepository.findById(otherUserId).orElse(null);
+
+        ConversationItemResponse.OtherUserInfo otherUserInfo;
+        if (otherUser != null) {
+            otherUserInfo = new ConversationItemResponse.OtherUserInfo(
+                    otherUser.getId().toString(), otherUser.getUsername(),
+                    otherUser.getNickname(), otherUser.getAvatarUrl(),
+                    otherUser.getState() == UserEntity.State.deleted);
+        } else {
+            otherUserInfo = new ConversationItemResponse.OtherUserInfo(
+                    otherUserId.toString(), null, null, null, true);
+        }
+
+        return new ConversationDetailResponse(requestId, conversation.getId().toString(), otherUserInfo);
     }
 
     @Transactional(readOnly = true)

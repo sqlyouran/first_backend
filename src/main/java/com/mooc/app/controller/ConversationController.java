@@ -53,6 +53,17 @@ public class ConversationController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/api/conversations/{id}")
+    public ResponseEntity<ConversationDetailResponse> getConversation(
+            @PathVariable UUID id,
+            HttpServletRequest httpRequest) {
+        UUID userId = AuthUtil.requireUserId(httpRequest, jwtService);
+        String requestId = AuthUtil.getRequestId(httpRequest);
+        ConversationDetailResponse response = conversationService.getConversationDetail(
+                id, userId, requestId);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/api/conversations/unread-count")
     public ResponseEntity<UnreadCountResponse> getUnreadCount(HttpServletRequest httpRequest) {
         UUID userId = AuthUtil.requireUserId(httpRequest, jwtService);

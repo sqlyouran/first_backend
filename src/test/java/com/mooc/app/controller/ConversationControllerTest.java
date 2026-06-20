@@ -109,7 +109,7 @@ class ConversationControllerTest {
                 .content(objectMapper.writeValueAsString(
                     Map.of("recipient_username", "bob", "content", "Hello?"))))
             .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.error_code").value("recipient_unavailable"));
+            .andExpect(jsonPath("$.error_code").value("user_unavailable"));
     }
 
     @Test
@@ -202,7 +202,7 @@ class ConversationControllerTest {
                 .header("Authorization", "Bearer " + aliceToken))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.request_id").isNotEmpty())
-            .andExpect(jsonPath("$.unread_count").value(1));
+            .andExpect(jsonPath("$.count").value(1));
     }
 
     @Test
@@ -210,7 +210,7 @@ class ConversationControllerTest {
         mockMvc.perform(get("/api/conversations/unread-count")
                 .header("Authorization", "Bearer " + aliceToken))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.unread_count").value(0));
+            .andExpect(jsonPath("$.count").value(0));
     }
 
     // ===== GET /api/conversations/{id}/messages =====
@@ -269,7 +269,10 @@ class ConversationControllerTest {
                 .content(objectMapper.writeValueAsString(Map.of("content", "Reply"))))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.request_id").isNotEmpty())
-            .andExpect(jsonPath("$.message_id").isNotEmpty());
+            .andExpect(jsonPath("$.message_id").isNotEmpty())
+            .andExpect(jsonPath("$.sender_id").isNotEmpty())
+            .andExpect(jsonPath("$.content").value("Reply"))
+            .andExpect(jsonPath("$.read").value(false));
     }
 
     @Test
@@ -330,7 +333,7 @@ class ConversationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("content", "Hello?"))))
             .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.error_code").value("recipient_unavailable"));
+            .andExpect(jsonPath("$.error_code").value("user_unavailable"));
     }
 
     // ===== POST /api/conversations/{id}/mark-read =====
@@ -351,7 +354,7 @@ class ConversationControllerTest {
         // Verify unread count drops to 0
         mockMvc.perform(get("/api/conversations/unread-count")
                 .header("Authorization", "Bearer " + aliceToken))
-            .andExpect(jsonPath("$.unread_count").value(0));
+            .andExpect(jsonPath("$.count").value(0));
     }
 
     @Test
@@ -362,6 +365,58 @@ class ConversationControllerTest {
         String charlieToken = registerAndLogin("charlie3@example.com", "Password1");
 
         mockMvc.perform(post("/api/conversations/" + convId + "/mark-read")
+                .header("Authorization", "Bearer " + charlieToken))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error_code").value("access_denied"));
+    }
+
+    // ===== Rate limit test =====
+
+    @Test
+    void sendMessage_rateLimit_returns429() throws Exception {
+        MvcResult r = createConv(aliceToken, "bob", "First");
+        String convId = objectMapper.readTree(r.getResponse().getContentAsString())
+            .get("conversation_id").asText();
+
+        // Send 19 more messages (first one was already sent in createConv)
+        for (int i = 0; i < 19; i++) {
+            sendMsg(aliceToken, convId, "msg" + i);
+        }
+
+        // 21st message should be rate limited
+        mockMvc.perform(post("/api/conversations/" + convId + "/messages")
+                .header("Authorization", "Bearer " + aliceToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("content", "Over limit!"))))
+            .andExpect(status().isTooManyRequests())
+            .andExpect(jsonPath("$.error_code").value("rate_limited"));
+    }
+
+    // ===== GET /api/conversations/{id} =====
+
+    @Test
+    void getConversation_valid_returns200() throws Exception {
+        MvcResult r = createConv(aliceToken, "bob", "Hello Bob!");
+        String convId = objectMapper.readTree(r.getResponse().getContentAsString())
+            .get("conversation_id").asText();
+
+        mockMvc.perform(get("/api/conversations/" + convId)
+                .header("Authorization", "Bearer " + aliceToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.request_id").isNotEmpty())
+            .andExpect(jsonPath("$.conversation_id").value(convId))
+            .andExpect(jsonPath("$.other_user.username").value("bob"))
+            .andExpect(jsonPath("$.other_user.deleted").value(false));
+    }
+
+    @Test
+    void getConversation_notParticipant_returns403() throws Exception {
+        MvcResult r = createConv(aliceToken, "bob", "Private");
+        String convId = objectMapper.readTree(r.getResponse().getContentAsString())
+            .get("conversation_id").asText();
+        String charlieToken = registerAndLogin("charlie4@example.com", "Password1");
+
+        mockMvc.perform(get("/api/conversations/" + convId)
                 .header("Authorization", "Bearer " + charlieToken))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.error_code").value("access_denied"));
