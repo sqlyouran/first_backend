@@ -99,6 +99,7 @@ public class SpotPostService {
                 post.getTags(),
                 post.getStatus().name().toLowerCase(),
                 post.getAuthorId().toString(),
+                null,
                 post.getCreatedAt() != null ? post.getCreatedAt().toString() : null,
                 post.getUpdatedAt() != null ? post.getUpdatedAt().toString() : null,
                 0, 0, 0

@@ -162,7 +162,7 @@ class SpotControllerTest {
     void getSpotPosts_exists_returnsPostList() throws Exception {
         UUID spotId = UUID.randomUUID();
         PostResponse post = new PostResponse("req", "post-1", "Title", "title-post-1", "Content", null,
-                List.of("tag"), "published", "author-1", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z", 0, 0, 0);
+                List.of("tag"), "published", "author-1", "author1", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z", 0, 0, 0);
         SpotPostsResponse response = new SpotPostsResponse("req", List.of(post), 1, 1, 20);
         when(spotPostService.getPostsBySpotId(eq(spotId), eq(1), eq(20), anyString())).thenReturn(response);
 

@@ -19,6 +19,9 @@ public class PostResponse extends BaseResponse {
     @JsonProperty("author_id")
     private final String authorId;
 
+    @JsonProperty("author_username")
+    private final String authorUsername;
+
     @JsonProperty("created_at")
     private final String createdAt;
 
@@ -37,7 +40,8 @@ public class PostResponse extends BaseResponse {
     private final long bookmarkCount;
 
     public PostResponse(String requestId, String id, String title, String slug, String content, String coverImage,
-                        List<String> tags, String status, String authorId, String createdAt, String updatedAt,
+                        List<String> tags, String status, String authorId, String authorUsername,
+                        String createdAt, String updatedAt,
                         long commentCount, long upVoteCount, long bookmarkCount) {
         super(requestId);
         this.id = id;
@@ -48,6 +52,7 @@ public class PostResponse extends BaseResponse {
         this.tags = tags;
         this.status = status;
         this.authorId = authorId;
+        this.authorUsername = authorUsername;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.commentCount = commentCount;
@@ -63,6 +68,7 @@ public class PostResponse extends BaseResponse {
     public List<String> getTags() { return tags; }
     public String getStatus() { return status; }
     public String getAuthorId() { return authorId; }
+    public String getAuthorUsername() { return authorUsername; }
     public String getCreatedAt() { return createdAt; }
     public String getUpdatedAt() { return updatedAt; }
     public long getCommentCount() { return commentCount; }

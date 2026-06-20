@@ -277,9 +277,16 @@ public class PostService {
     }
 
     private List<PostResponse> buildItemsWithStats(List<PostEntity> posts, Map<UUID, long[]> stats, String requestId, boolean includeContent) {
+        // Batch-fetch author usernames
+        List<UUID> authorIds = posts.stream().map(PostEntity::getAuthorId).distinct().toList();
+        Map<UUID, String> usernameMap = new HashMap<>();
+        if (!authorIds.isEmpty()) {
+            userRepository.findAllById(authorIds).forEach(u -> usernameMap.put(u.getId(), u.getUsername()));
+        }
         return posts.stream().map(p -> {
             long[] s = stats.getOrDefault(p.getId(), new long[]{0, 0, 0});
-            return toPostResponse(p, requestId, includeContent, s[0], s[1], s[2]);
+            String username = usernameMap.getOrDefault(p.getAuthorId(), null);
+            return toPostResponse(p, requestId, includeContent, s[0], s[1], s[2], username);
         }).toList();
     }
 
@@ -312,6 +319,13 @@ public class PostService {
 
     private PostResponse toPostResponse(PostEntity post, String requestId, boolean includeContent,
                                         long commentCount, long upVoteCount, long bookmarkCount) {
+        String username = userRepository.findById(post.getAuthorId())
+                .map(u -> u.getUsername()).orElse(null);
+        return toPostResponse(post, requestId, includeContent, commentCount, upVoteCount, bookmarkCount, username);
+    }
+
+    private PostResponse toPostResponse(PostEntity post, String requestId, boolean includeContent,
+                                        long commentCount, long upVoteCount, long bookmarkCount, String authorUsername) {
         return new PostResponse(
                 requestId,
                 post.getId().toString(),
@@ -322,6 +336,7 @@ public class PostService {
                 post.getTags(),
                 post.getStatus().name().toLowerCase(),
                 post.getAuthorId().toString(),
+                authorUsername,
                 post.getCreatedAt().toString(),
                 post.getUpdatedAt().toString(),
                 commentCount,
