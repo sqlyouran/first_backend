@@ -3,8 +3,7 @@ package com.mooc.app.service;
 import com.mooc.app.dto.CreateCommentRequest;
 import com.mooc.app.dto.response.CommentListResponse;
 import com.mooc.app.dto.response.CommentResponse;
-import com.mooc.app.entity.CommentEntity;
-import com.mooc.app.entity.EntityType;
+import com.mooc.app.entity.*;
 import com.mooc.app.exception.PostException;
 import com.mooc.app.repository.CommentRepository;
 import com.mooc.app.repository.PostRepository;
@@ -27,18 +26,22 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final SpotRepository spotRepository;
+    private final NotificationService notificationService;
 
-    public CommentService(CommentRepository commentRepository, PostRepository postRepository, SpotRepository spotRepository) {
+    public CommentService(CommentRepository commentRepository, PostRepository postRepository,
+                           SpotRepository spotRepository, NotificationService notificationService) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.spotRepository = spotRepository;
+        this.notificationService = notificationService;
     }
 
     public CommentResponse createComment(UUID entityId, EntityType entityType, UUID userId, CreateCommentRequest request, String requestId) {
         validateEntityExists(entityId, entityType);
 
+        CommentEntity parentComment = null;
         if (request.parentCommentId() != null) {
-            commentRepository.findByIdAndDeletedFalse(request.parentCommentId())
+            parentComment = commentRepository.findByIdAndDeletedFalse(request.parentCommentId())
                     .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Parent comment not found"));
         }
 
@@ -50,7 +53,31 @@ public class CommentService {
         comment.setParentCommentId(request.parentCommentId());
 
         CommentEntity saved = commentRepository.save(comment);
+
+        if (entityType == EntityType.POST) {
+            if (parentComment != null) {
+                // Reply: notify parent comment author
+                String preview = truncate(request.content(), 50);
+                notificationService.createNotification(
+                        parentComment.getUserId(), userId,
+                        NotificationType.COMMENT_REPLIED, entityId, "post", preview);
+            } else {
+                // Top-level comment: notify post author
+                postRepository.findByIdAndDeletedFalse(entityId).ifPresent(post -> {
+                    String preview = truncate(request.content(), 50);
+                    notificationService.createNotification(
+                            post.getAuthorId(), userId,
+                            NotificationType.POST_COMMENTED, entityId, "post", preview);
+                });
+            }
+        }
+
         return toCommentResponse(saved, requestId);
+    }
+
+    private static String truncate(String text, int maxLen) {
+        if (text == null) return null;
+        return text.length() > maxLen ? text.substring(0, maxLen) : text;
     }
 
     public CommentListResponse listTopLevelComments(UUID entityId, EntityType entityType, int page, int size, String requestId) {

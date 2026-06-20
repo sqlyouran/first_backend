@@ -145,7 +145,7 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.request_id").isNotEmpty())
             .andExpect(cookie().exists("refresh_token"))
             .andExpect(cookie().httpOnly("refresh_token", true))
-            .andExpect(cookie().path("refresh_token", "/api/auth"))
+            .andExpect(cookie().path("refresh_token", "/"))
             .andReturn();
     }
 
