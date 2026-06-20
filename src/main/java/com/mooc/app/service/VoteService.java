@@ -68,8 +68,17 @@ public class VoteService {
             }
             return new VoteResponse(requestId, null);
         } else {
+            VoteType previousType = existingVote.getVoteType();
             existingVote.setVoteType(voteType);
             voteRepository.save(existingVote);
+            // Handle notification for UP/DOWN switch
+            if (previousType == VoteType.UP && voteType == VoteType.DOWN) {
+                notificationService.deleteNotification(post.getAuthorId(), userId,
+                        NotificationType.POST_LIKED, postId);
+            } else if (previousType == VoteType.DOWN && voteType == VoteType.UP) {
+                notificationService.createNotification(post.getAuthorId(), userId,
+                        NotificationType.POST_LIKED, postId, "post", null);
+            }
             return new VoteResponse(requestId, voteType.name().toLowerCase());
         }
     }

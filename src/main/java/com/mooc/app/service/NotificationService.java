@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,6 +37,7 @@ public class NotificationService {
         this.postRepository = postRepository;
     }
 
+    @Transactional
     public void createNotification(UUID recipientId, UUID actorId, NotificationType type,
                                     UUID entityId, String entityType, String contentPreview) {
         if (recipientId.equals(actorId)) {
@@ -51,6 +53,7 @@ public class NotificationService {
                 notification.setContentPreview(contentPreview);
             }
             notificationRepository.save(notification);
+            notificationRepository.refreshCreatedAt(notification.getId(), Instant.now());
             return;
         }
 
@@ -99,8 +102,20 @@ public class NotificationService {
 
     public String resolveActorNickname(UUID actorId) {
         return userRepository.findById(actorId)
-                .map(UserEntity::getEmail)
+                .map(u -> u.getNickname() != null ? u.getNickname() : u.getEmail())
                 .orElse("Unknown");
+    }
+
+    public String resolveActorAvatarUrl(UUID actorId) {
+        return userRepository.findById(actorId)
+                .map(UserEntity::getAvatarUrl)
+                .orElse(null);
+    }
+
+    public String resolveActorUsername(UUID actorId) {
+        return userRepository.findById(actorId)
+                .map(UserEntity::getUsername)
+                .orElse(null);
     }
 
     public String resolveTargetTitle(UUID entityId) {

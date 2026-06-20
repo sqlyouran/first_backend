@@ -6,9 +6,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +34,7 @@ class NotificationIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private VerificationCodeStore codeStore;
     @Autowired private NotificationRepository notificationRepository;
+    @MockBean private RateLimitService rateLimitService;
     @Autowired private JwtService jwtService;
 
     private String authorToken;
@@ -40,6 +45,10 @@ class NotificationIntegrationTest {
 
     @BeforeAll
     void setUp() throws Exception {
+        when(rateLimitService.isRegisterRateLimited(anyString())).thenReturn(false);
+        when(rateLimitService.isLoginRateLimited(anyString())).thenReturn(false);
+        when(rateLimitService.isSendCodeIpRateLimited(anyString())).thenReturn(false);
+        when(rateLimitService.isSendCodeEmailRateLimited(anyString())).thenReturn(false);
         authorToken = registerAndLogin("integ-author@test.com", "Password123!");
         authorId = parseUserId(authorToken);
         otherToken = registerAndLogin("integ-other@test.com", "Password123!");
@@ -192,15 +201,26 @@ class NotificationIntegrationTest {
 
     private String registerAndLogin(String email, String password) throws Exception {
         codeStore.save(email.toLowerCase(), "123456", 600);
-        mockMvc.perform(post("/api/auth/register")
+        MvcResult registerResult = mockMvc.perform(post("/api/auth/register")
+                .header("X-Forwarded-For", "10.0.0." + (int)(Math.random() * 254 + 1))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new RegisterRequest(email, "123456", password))));
+                .content(objectMapper.writeValueAsString(new RegisterRequest(email, "123456", password))))
+            .andReturn();
+        if (registerResult.getResponse().getStatus() >= 400) {
+            throw new RuntimeException("Register failed: " + registerResult.getResponse().getContentAsString());
+        }
 
         MvcResult result = mockMvc.perform(post("/api/auth/login")
+                .header("X-Forwarded-For", "10.0.0." + (int)(Math.random() * 254 + 1))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new LoginRequest(email, password))))
             .andReturn();
-        return objectMapper.readTree(result.getResponse().getContentAsString()).get("access_token").asText();
+        String body = result.getResponse().getContentAsString();
+        var tokenNode = objectMapper.readTree(body).get("access_token");
+        if (tokenNode == null) {
+            throw new RuntimeException("Login response missing access_token: " + body);
+        }
+        return tokenNode.asText();
     }
 
     private UUID parseUserId(String token) {

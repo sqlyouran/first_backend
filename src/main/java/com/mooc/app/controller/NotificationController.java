@@ -52,7 +52,7 @@ public class NotificationController {
             HttpServletRequest httpRequest) {
         UUID userId = AuthUtil.requireUserId(httpRequest, jwtService);
         notificationService.markAsRead(id, userId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/mark-all-read")
@@ -73,6 +73,8 @@ public class NotificationController {
 
     private NotificationItemResponse toItemResponse(NotificationEntity n) {
         String actorNickname = notificationService.resolveActorNickname(n.getActorId());
+        String actorAvatarUrl = notificationService.resolveActorAvatarUrl(n.getActorId());
+        String actorUsername = notificationService.resolveActorUsername(n.getActorId());
         String targetTitle = notificationService.resolveTargetTitle(n.getEntityId());
 
         return new NotificationItemResponse(
@@ -80,8 +82,8 @@ public class NotificationController {
                 n.getType().name(),
                 n.getActorId().toString(),
                 actorNickname,
-                null,
-                null,
+                actorAvatarUrl,
+                actorUsername,
                 n.getEntityId() != null ? n.getEntityId().toString() : null,
                 n.getEntityType(),
                 targetTitle,

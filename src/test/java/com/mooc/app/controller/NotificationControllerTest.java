@@ -95,7 +95,7 @@ class NotificationControllerTest {
 
         mockMvc.perform(post("/api/notifications/" + notificationId + "/read")
                 .header("Authorization", "Bearer " + userAToken))
-            .andExpect(status().isNoContent());
+            .andExpect(status().isOk());
     }
 
     @Test

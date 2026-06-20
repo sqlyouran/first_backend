@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,4 +30,8 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
     @Modifying
     @Query("UPDATE NotificationEntity n SET n.read = true WHERE n.recipientId = :recipientId AND n.read = false AND n.deleted = false")
     int markAllReadByRecipientId(@Param("recipientId") UUID recipientId);
+
+    @Modifying
+    @Query("UPDATE NotificationEntity n SET n.createdAt = :now WHERE n.id = :id")
+    void refreshCreatedAt(@Param("id") UUID id, @Param("now") Instant now);
 }
