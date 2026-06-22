@@ -2,6 +2,12 @@ server:
   port: 8080
 
 spring:
+  ai:
+    mcp:
+      server:
+        name: wanderchina-travel-services
+        version: 1.0.0
+        type: SYNC
   data:
     redis:
       host: localhost
@@ -39,3 +45,9 @@ app:
     secret: dev-secret-key-change-in-production-min-32-chars!!
     access-token-expiry-seconds: 1800
     refresh-token-expiry-seconds: 604800
+  weather:
+    geocoding-url: https://geocoding-api.open-meteo.com
+    forecast-url: https://api.open-meteo.com
+  exchange-rate:
+    api-key: ${EXCHANGE_RATE_API_KEY:}
+    base-url: https://v6.exchangerate-api.com/v6
