@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  ai:
+    mcp:
+      server:
+        enabled: false
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
@@ -36,3 +40,9 @@ app:
     secret: dev-secret-key-change-in-production-min-32-chars!!
     access-token-expiry-seconds: 1800
     refresh-token-expiry-seconds: 604800
+  weather:
+    geocoding-url: https://geocoding-api.open-meteo.com
+    forecast-url: https://api.open-meteo.com
+  exchange-rate:
+    api-key: test-exchange-key
+    base-url: https://v6.exchangerate-api.com/v6
