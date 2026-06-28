@@ -69,6 +69,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getStatus()).body(body);
     }
 
+    @ExceptionHandler(AiChatException.class)
+    public ResponseEntity<ErrorResponse> handleAiChatException(AiChatException ex, HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        ErrorResponse body = new ErrorResponse(requestId, ex.getErrorCode(), ex.getMessage());
+        return ResponseEntity.status(ex.getStatus()).body(body);
+    }
+
     @ExceptionHandler(ServiceException.class)
     public ResponseEntity<ErrorResponse> handleServiceException(ServiceException ex, HttpServletRequest request) {
         String requestId = getRequestId(request);

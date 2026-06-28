@@ -8,6 +8,11 @@ spring:
         name: wanderchina-travel-services
         version: 1.0.0
         type: SYNC
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:}
+      chat:
+        options:
+          model: qwen-plus
   data:
     redis:
       host: localhost

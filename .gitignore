@@ -16,3 +16,8 @@ target/
 # Logs
 *.log
 logs/
+
+# Secrets / Environment
+*.env
+.env.*
+!.env.example
