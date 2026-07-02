@@ -12,7 +12,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.document.Document;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -21,6 +24,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class AiChatService {
@@ -34,13 +38,16 @@ public class AiChatService {
     private final AiConversationRepository conversationRepository;
     private final AiMessageRepository messageRepository;
     private final ChatClient chatClient;
+    private final KnowledgeSearchService knowledgeSearchService;
 
     public AiChatService(AiConversationRepository conversationRepository,
                         AiMessageRepository messageRepository,
-                        ChatClient chatClient) {
+                        ChatClient chatClient,
+                        @Autowired(required = false) KnowledgeSearchService knowledgeSearchService) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.chatClient = chatClient;
+        this.knowledgeSearchService = knowledgeSearchService;
     }
 
     public AiConversationResponse createConversation(UUID userId, String requestId) {
@@ -74,7 +81,8 @@ public class AiChatService {
         conversation.setLastMessageAt(Instant.now());
         conversationRepository.save(conversation);
 
-        List<Message> contextMessages = buildContextMessages(conversationId);
+        List<Document> knowledgeResults = searchKnowledge(message);
+        List<Message> contextMessages = buildContextMessages(conversationId, knowledgeResults);
 
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         StringBuilder fullResponse = new StringBuilder();
@@ -120,7 +128,22 @@ public class AiChatService {
         return emitter;
     }
 
-    private List<Message> buildContextMessages(UUID conversationId) {
+    private List<Document> searchKnowledge(String query) {
+        if (knowledgeSearchService == null) {
+            log.debug("Knowledge search service not available, skipping RAG retrieval");
+            return List.of();
+        }
+        try {
+            List<Document> results = knowledgeSearchService.search(query);
+            log.debug("RAG retrieval returned {} documents for query: {}", results.size(), query);
+            return results;
+        } catch (Exception e) {
+            log.warn("RAG retrieval failed, proceeding without knowledge context", e);
+            return List.of();
+        }
+    }
+
+    List<Message> buildContextMessages(UUID conversationId, List<Document> knowledgeResults) {
         List<AiMessage> allMessages = messageRepository
                 .findByConversationIdAndDeletedFalseOrderByCreatedAtAsc(conversationId);
 
@@ -132,7 +155,12 @@ public class AiChatService {
             windowedMessages = allMessages;
         }
 
-        List<Message> contextMessages = new ArrayList<>(windowedMessages.size());
+        List<Message> contextMessages = new ArrayList<>();
+
+        if (!knowledgeResults.isEmpty()) {
+            contextMessages.add(buildKnowledgeSystemMessage(knowledgeResults));
+        }
+
         for (AiMessage msg : windowedMessages) {
             if (msg.getRole() == AiMessageRole.USER) {
                 contextMessages.add(new UserMessage(msg.getContent()));
@@ -141,5 +169,20 @@ public class AiChatService {
             }
         }
         return contextMessages;
+    }
+
+    private SystemMessage buildKnowledgeSystemMessage(List<Document> documents) {
+        String knowledgeContext = documents.stream()
+                .map(doc -> {
+                    String entityType = (String) doc.getMetadata().getOrDefault("entity_type", "unknown");
+                    String name = (String) doc.getMetadata().getOrDefault("name",
+                            doc.getMetadata().getOrDefault("title", "unknown"));
+                    return String.format("[%s: %s]\n%s", entityType, name, doc.getText());
+                })
+                .collect(Collectors.joining("\n\n---\n\n"));
+
+        return new SystemMessage(
+                "Reference knowledge (use this to answer the user's question and cite sources):\n\n"
+                        + knowledgeContext);
     }
 }

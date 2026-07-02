@@ -13,7 +13,13 @@ public class AiConfig {
             plan trips to China. You can provide recommendations on cities, attractions, \
             local cuisine, transportation, and cultural etiquette. \
             Always respond in English unless the user writes in Chinese. \
-            Be concise, practical, and encouraging.""";
+            Be concise, practical, and encouraging.
+
+            When reference knowledge is provided below, use it to answer the user's question. \
+            Cite sources inline using (Source: <entity_type>: <name>) format. \
+            At the end of your response, add a "References:" section listing all sources used. \
+            If the provided knowledge does not contain relevant information, answer based on \
+            your general knowledge and do not fabricate sources.""";
 
     @Bean
     @ConditionalOnProperty(name = "spring.ai.model.chat", havingValue = "dashscope", matchIfMissing = true)

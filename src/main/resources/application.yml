@@ -13,6 +13,9 @@ spring:
       chat:
         options:
           model: qwen-plus
+      embedding:
+        options:
+          model: text-embedding-v3
   data:
     redis:
       host: localhost
@@ -56,3 +59,14 @@ app:
   exchange-rate:
     api-key: ${EXCHANGE_RATE_API_KEY:}
     base-url: https://v6.exchangerate-api.com/v6
+  chroma:
+    host: ${CHROMA_HOST:http://localhost}
+    port: ${CHROMA_PORT:8000}
+    collection-name: wanderchina-knowledge
+  rag:
+    enabled: true
+    top-k: 5
+    similarity-threshold: 0.3
+    rebuild-cron: "0 0 */6 * * *"
+    max-chunk-size: 800
+    chunk-overlap: 100

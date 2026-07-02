@@ -50,3 +50,10 @@ app:
   exchange-rate:
     api-key: test-exchange-key
     base-url: https://v6.exchangerate-api.com/v6
+  rag:
+    enabled: false
+    top-k: 5
+    similarity-threshold: 0.3
+    rebuild-cron: "0 0 */6 * * *"
+    max-chunk-size: 800
+    chunk-overlap: 100
