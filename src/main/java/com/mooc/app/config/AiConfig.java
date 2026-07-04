@@ -1,6 +1,8 @@
 package com.mooc.app.config;
 
+import com.mooc.app.service.SpotQueryTool;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,11 +21,18 @@ public class AiConfig {
             Cite sources inline using (Source: <entity_type>: <name>) format. \
             At the end of your response, add a "References:" section listing all sources used. \
             If the provided knowledge does not contain relevant information, answer based on \
-            your general knowledge and do not fabricate sources.""";
+            your general knowledge and do not fabricate sources.
+
+            You have access to tools for querying tourist spots. Use them when the user asks \
+            about attractions, spot details, or top rated spots in any city.""";
 
     @Bean
     @ConditionalOnProperty(name = "spring.ai.model.chat", havingValue = "dashscope", matchIfMissing = true)
-    public ChatClient chatClient(ChatClient.Builder builder) {
+    public ChatClient chatClient(ChatClient.Builder builder,
+                                 @Autowired(required = false) SpotQueryTool spotQueryTool) {
+        if (spotQueryTool != null) {
+            builder.defaultTools(spotQueryTool);
+        }
         return builder
                 .defaultSystem(SYSTEM_PROMPT)
                 .build();
