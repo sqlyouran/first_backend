@@ -213,8 +213,9 @@ VALUES ('c0000000-0000-0000-0000-000000000006', 'Gulangyu Island', '鼓浪屿', 
 -- Post seed data (6 PUBLISHED posts + 1 DRAFT for filtering tests)
 -- author_id uses a fixed seed UUID for deterministic data
 
-INSERT IGNORE INTO posts (id, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
+INSERT IGNORE INTO posts (id, slug, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
 VALUES ('d1111111-1111-1111-1111-111111111111',
+        'a-week-in-beijing-imperial-wonders',
         'A Week in Beijing: Imperial Wonders',
         '# Beijing Travel Guide\nSpent an unforgettable week exploring the Forbidden City, climbing the Great Wall at Badaling, and wandering through the Temple of Heaven.',
         'https://picsum.photos/800/600?random=200',
@@ -222,8 +223,9 @@ VALUES ('d1111111-1111-1111-1111-111111111111',
         'PUBLISHED', 'e0000000-0000-0000-0000-000000000001',
         NOW(), NOW(), false);
 
-INSERT IGNORE INTO posts (id, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
+INSERT IGNORE INTO posts (id, slug, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
 VALUES ('d2222222-2222-2222-2222-222222222222',
+        'shanghai-where-old-meets-new',
         'Shanghai: Where Old Meets New',
         '# Shanghai Highlights\nFrom the colonial Bund to the classical Yu Garden, Shanghai blends history with modernity like nowhere else.',
         'https://picsum.photos/800/600?random=201',
@@ -231,8 +233,9 @@ VALUES ('d2222222-2222-2222-2222-222222222222',
         'PUBLISHED', 'e0000000-0000-0000-0000-000000000001',
         NOW(), NOW(), false);
 
-INSERT IGNORE INTO posts (id, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
+INSERT IGNORE INTO posts (id, slug, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
 VALUES ('d3333333-3333-3333-3333-333333333333',
+        'pandas-and-spice-my-chengdu-diary',
         'Pandas and Spice: My Chengdu Diary',
         '# Chengdu Adventures\nMet the giant pandas at the research base and explored the ancient Wuhou Shrine. The spicy hotpot was the real highlight.',
         'https://picsum.photos/800/600?random=202',
@@ -240,8 +243,9 @@ VALUES ('d3333333-3333-3333-3333-333333333333',
         'PUBLISHED', 'e0000000-0000-0000-0000-000000000001',
         NOW(), NOW(), false);
 
-INSERT IGNORE INTO posts (id, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
+INSERT IGNORE INTO posts (id, slug, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
 VALUES ('d4444444-4444-4444-4444-444444444444',
+        'walking-the-ancient-xian-city-wall',
         'Walking the Ancient Xi''an City Wall',
         '# Xi''an Heritage\nCycling atop the ancient city wall at sunset, then visiting the Terracotta Army the next morning — pure magic.',
         'https://picsum.photos/800/600?random=203',
@@ -249,8 +253,9 @@ VALUES ('d4444444-4444-4444-4444-444444444444',
         'PUBLISHED', 'e0000000-0000-0000-0000-000000000001',
         NOW(), NOW(), false);
 
-INSERT IGNORE INTO posts (id, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
+INSERT IGNORE INTO posts (id, slug, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
 VALUES ('d5555555-5555-5555-5555-555555555555',
+        'west-lake-serenity-hangzhou-weekend',
         'West Lake Serenity: Hangzhou Weekend',
         '# Hangzhou Escape\nA peaceful weekend by West Lake, visiting Lingyin Temple and sipping Longjing tea in the surrounding plantations.',
         'https://picsum.photos/800/600?random=204',
@@ -258,8 +263,9 @@ VALUES ('d5555555-5555-5555-5555-555555555555',
         'PUBLISHED', 'e0000000-0000-0000-0000-000000000001',
         NOW(), NOW(), false);
 
-INSERT IGNORE INTO posts (id, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
+INSERT IGNORE INTO posts (id, slug, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
 VALUES ('d6666666-6666-6666-6666-666666666666',
+        'southern-coast-gems-guilin-and-xiamen',
         'Southern Coast Gems: Guilin and Xiamen',
         '# South China Tour\nCruised the Li River past karst peaks, then island-hopped to Gulangyu for colonial architecture and piano music.',
         'https://picsum.photos/800/600?random=205',
@@ -268,8 +274,9 @@ VALUES ('d6666666-6666-6666-6666-666666666666',
         NOW(), NOW(), false);
 
 -- Draft post (used to verify DRAFT filtering in association queries)
-INSERT IGNORE INTO posts (id, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
+INSERT IGNORE INTO posts (id, slug, title, content, cover_image, tags, status, author_id, created_at, updated_at, deleted)
 VALUES ('d7777777-7777-7777-7777-777777777777',
+        'unfinished-lijiang-notes-draft',
         'Unfinished Lijiang Notes (Draft)',
         '# Draft\nWork in progress notes on Lijiang Old Town and Jade Dragon Snow Mountain.',
         'https://picsum.photos/800/600?random=206',

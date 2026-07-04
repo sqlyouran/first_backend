@@ -57,3 +57,9 @@ app:
     rebuild-cron: "0 0 */6 * * *"
     max-chunk-size: 800
     chunk-overlap: 100
+  search:
+    rrf-k: 60
+    vector-top-k: 5
+    keyword-top-k: 5
+    suggest-top-k: 3
+    similarity-threshold: 0.0

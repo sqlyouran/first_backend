@@ -86,4 +86,9 @@ public interface PostRepository extends JpaRepository<PostEntity, UUID> {
                                                          @Param("cursorComments") long cursorComments,
                                                          @Param("cursorTime") Instant cursorTime,
                                                          Pageable pageable);
+
+    @Query("SELECT p FROM PostEntity p WHERE p.deleted = false AND p.status = 'PUBLISHED' AND " +
+            "(LOWER(p.title) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(p.content) LIKE LOWER(CONCAT('%', :q, '%')))")
+    List<PostEntity> searchByKeyword(@Param("q") String query);
 }

@@ -7,6 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface CityRepository extends JpaRepository<CityEntity, UUID> {
 
@@ -15,4 +19,10 @@ public interface CityRepository extends JpaRepository<CityEntity, UUID> {
     Optional<CityEntity> findByIdAndDeletedFalse(UUID id);
 
     Optional<CityEntity> findBySlugAndDeletedFalse(String slug);
+
+    @Query("SELECT c FROM CityEntity c WHERE c.deleted = false AND " +
+            "(LOWER(c.name) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(c.nameZh) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(c.description) LIKE LOWER(CONCAT('%', :q, '%')))")
+    List<CityEntity> searchByKeyword(@Param("q") String query);
 }

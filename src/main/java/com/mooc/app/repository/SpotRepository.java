@@ -28,4 +28,12 @@ public interface SpotRepository extends JpaRepository<SpotEntity, UUID> {
     Page<SpotEntity> findByStatusAndDeletedFalse(SpotStatus status, Pageable pageable);
 
     List<SpotEntity> findAllByIdInAndStatusAndDeletedFalse(List<UUID> ids, SpotStatus status);
+
+    @Query("SELECT s FROM SpotEntity s WHERE s.deleted = false AND s.status = 'PUBLISHED' AND " +
+            "(LOWER(s.name) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(s.nameZh) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(s.description) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(s.descriptionZh) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(s.cityName) LIKE LOWER(CONCAT('%', :q, '%')))")
+    List<SpotEntity> searchByKeyword(@Param("q") String query);
 }
