@@ -66,6 +66,15 @@ public class SpotQueryTool {
         sb.append("\nCity: ").append(spot.getCityName() != null ? spot.getCityName() : "Unknown");
         sb.append("\nRating: ").append(spot.getRating() != null ? spot.getRating().toPlainString() : "N/A");
         sb.append("\nTags: ").append(String.join(", ", spot.getTags()));
+        if (spot.getTicketPrice() != null) {
+            sb.append("\nTicket Price: ").append(spot.getTicketPrice());
+        }
+        if (spot.getOpeningHours() != null) {
+            sb.append("\nOpening Hours: ").append(spot.getOpeningHours());
+        }
+        if (spot.getAddress() != null) {
+            sb.append("\nAddress: ").append(spot.getAddress());
+        }
         if (spot.getDescription() != null) {
             sb.append("\nDescription: ").append(spot.getDescription());
         }

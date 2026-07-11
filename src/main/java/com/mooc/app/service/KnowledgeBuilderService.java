@@ -119,13 +119,25 @@ public class KnowledgeBuilderService {
 
     private Document toSpotDocument(SpotEntity spot) {
         String tags = spot.getTags() != null ? String.join(", ", spot.getTags()) : "";
-        String text = String.format("Spot: %s (%s)\nCity: %s\nTags: %s\nRating: %s\nDescription: %s",
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("Spot: %s (%s)\nCity: %s\nTags: %s\nRating: %s",
                 spot.getName(),
                 spot.getNameZh() != null ? spot.getNameZh() : "",
                 spot.getCityName() != null ? spot.getCityName() : "",
                 tags,
-                spot.getRating(),
-                spot.getDescription() != null ? spot.getDescription() : "");
+                spot.getRating()));
+        if (spot.getTicketPrice() != null) {
+            sb.append("\nTicket Price: ").append(spot.getTicketPrice());
+        }
+        if (spot.getOpeningHours() != null) {
+            sb.append("\nOpening Hours: ").append(spot.getOpeningHours());
+        }
+        if (spot.getAddress() != null) {
+            sb.append("\nAddress: ").append(spot.getAddress());
+        }
+        if (spot.getDescription() != null) {
+            sb.append("\nDescription: ").append(spot.getDescription());
+        }
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("entity_type", "spot");
@@ -141,7 +153,7 @@ public class KnowledgeBuilderService {
             metadata.put("tags", String.join(",", spot.getTags()));
         }
 
-        return new Document(text, metadata);
+        return new Document(sb.toString(), metadata);
     }
 
     private List<Document> toPostDocuments(PostEntity post) {

@@ -49,39 +49,254 @@ VALUES ('a8888888-8888-8888-8888-888888888888', 'Xiamen', '厦门', 'xiamen',
         'Coastal charm and Gulangyu Island', 'Autumn',
         NOW(), NOW(), false);
 
--- Spot seed data (15+ spots across 8 cities)
+-- Spot seed data (19+ spots across 8 cities, Beijing has 19 with real-world data)
 -- Uses INSERT IGNORE to ensure idempotent startup
 
 -- Beijing spots (city_id = a1111111-1111-1111-1111-111111111111)
-INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, created_at, updated_at, deleted)
-VALUES ('b1111111-1111-1111-1111-111111111111', 'Forbidden City', '故宫', 'forbidden-city',
-        'The world''s largest palace complex with 600 years of imperial history',
-        '世界上最大的宫殿建筑群，拥有600年的皇家历史',
+-- 3 existing spots updated with practical info + 16 new spots from Ctrip data
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('b1111111-1111-1111-1111-111111111111', 'Forbidden City', '故宫博物院', 'forbidden-city',
+        'The imperial palace of the Ming and Qing dynasties, symbolizing ancient China''s majesty and cultural heritage. Housing over 1.8 million artifacts, it represents the pinnacle of Chinese architectural and artistic achievement.',
+        '故宫博物院又称紫禁城，是明、清两代的皇宫，也是古老中国的标志和象征。当你置身于气派规整的高墙深院，能真真切切地感受到它曾经的荣耀。',
         'https://picsum.photos/800/600?random=100',
         '["https://picsum.photos/800/600?random=101","https://picsum.photos/800/600?random=102"]',
         '["heritage","history","architecture"]',
         'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.8, 15200, 3200,
+        '旺季60元/淡季40元', '08:30-17:00（4月-10月周二-周日）/ 08:30-16:30（11月-3月周二-周日），周一闭馆', '北京市东城区景山前街4号',
         NOW(), NOW(), false);
 
-INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, created_at, updated_at, deleted)
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
 VALUES ('b2222222-2222-2222-2222-222222222222', 'Great Wall at Badaling', '八达岭长城', 'great-wall-badaling',
-        'The most visited section of the Great Wall of China',
-        '中国长城最著名的段落',
+        'The most visited section of the Great Wall of China, known as one of the Nine Fortified Passes, featuring watchtowers and magnificent mountain views.',
+        '八达岭长城号称天下九塞之一，风光集巍峨险峻、秀丽苍翠于一体，是明长城景色中的精华。不到长城非好汉。',
         'https://picsum.photos/800/600?random=103',
         '["https://picsum.photos/800/600?random=104","https://picsum.photos/800/600?random=105"]',
-        '["heritage","nature","hiking"]',
-        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.9, 28500, 5800,
+        '["heritage","hiking","scenic"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 28500, 5800,
+        '旺季40元/淡季35元', '06:30-17:00（春夏季）/ 07:30-16:00（秋冬季）', '北京市延庆区G6京藏高速58号出口',
         NOW(), NOW(), false);
 
-INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, created_at, updated_at, deleted)
-VALUES ('b3333333-3333-3333-3333-333333333333', 'Temple of Heaven', '天坛', 'temple-of-heaven',
-        'Imperial temple where emperors prayed for good harvests',
-        '皇帝祈求丰收的皇家寺庙',
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('b3333333-3333-3333-3333-333333333333', 'Temple of Heaven', '天坛公园', 'temple-of-heaven',
+        'A UNESCO World Heritage Site where emperors performed rituals to heaven. Its iconic Hall of Prayer for Good Harvests represents the harmony between man and heaven.',
+        '天坛是明、清两代帝王祭祀皇天、祈求丰收的场所，是世界上现存最大、保存最完整的祭天建筑群。',
         'https://picsum.photos/800/600?random=106',
         '["https://picsum.photos/800/600?random=107"]',
         '["heritage","architecture","culture"]',
-        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.5, 9800, 1900,
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 9800, 1900,
+        '旺季15元/淡季10元', '06:00-22:00（公园）/ 08:00-17:00（景点）', '北京市东城区天坛路1号',
         NOW(), NOW(), false);
+
+-- New Beijing spots (16 additional, sourced from Ctrip)
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000001', 'Beijing Universal Resort', '北京环球度假区', 'beijing-universal-resort',
+        'A comprehensive theme park featuring Universal Studios Beijing, CityWalk, and two resort hotels with seven themed lands, 37 attractions, and over 100 shops and restaurants.',
+        '北京环球度假区是一个广受期待的主题公园旅游目的地，包括环球主题公园、北京环球城市大道以及两家度假酒店，引入中外各大IP。',
+        'https://picsum.photos/800/600?random=140',
+        '["https://picsum.photos/800/600?random=141"]',
+        '["amusement","family","modern"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.6, 32000, 6500,
+        '约548元起（根据日期浮动）', '09:00-21:00', '北京市通州区京哈高速与东六环路交汇处西北角',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000002', 'Prince Gong''s Mansion', '恭王府', 'prince-gongs-mansion',
+        'The largest preserved royal mansion from the Qing Dynasty, featuring exquisite architecture, classic gardens, and the famous Fortune Garden.',
+        '恭王府位于北京西城区前海西街，先后作为和珅、庆亲王永璘的宅邸，故有一座恭王府，半部清代史的说法。',
+        'https://picsum.photos/800/600?random=142',
+        '["https://picsum.photos/800/600?random=143"]',
+        '["heritage","architecture","history"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 18000, 3600,
+        '40元', '08:30-17:00（周二-周日）', '北京市西城区前海西街17号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000003', 'Beijing Wildlife Park', '北京野生动物园', 'beijing-wildlife-park',
+        'A 4A-rated zoo featuring over 200 species and 5,000 animals including drive-through safari areas and interactive feeding opportunities.',
+        '北京野生动物园坐落于永定河畔，在3600余亩的土地上养育着200余种、5000余头只来自世界各地的珍稀野生动物。',
+        'https://picsum.photos/800/600?random=144',
+        '["https://picsum.photos/800/600?random=145"]',
+        '["wildlife","family","nature"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 16000, 3200,
+        '成人票约145元', '08:30-17:30（春夏季）/ 09:00-17:00（秋冬季）', '北京市大兴区榆垡镇万亩森林',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000004', 'Beijing Happy Valley', '北京欢乐谷', 'beijing-happy-valley',
+        'A major amusement park featuring thrilling roller coasters, family-friendly attractions, live performances, and themed entertainment zones.',
+        '北京欢乐谷是北京最大的现代主题公园，占地100万平米，拥有国际一流的娱乐设施和精彩纷呈的文艺表演。',
+        'https://picsum.photos/800/600?random=146',
+        '["https://picsum.photos/800/600?random=147"]',
+        '["amusement","family"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 9500, 2000,
+        '约199元起', '10:00-22:00', '北京市朝阳区金盏乡蛎壳港路1号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000005', 'National Museum of China', '中国国家博物馆', 'national-museum-of-china',
+        'The national institution housing 1.4 million pieces spanning ancient relics to modern artifacts, showcasing China''s rich history and cultural achievements.',
+        '中国国家博物馆是代表国家收藏、研究、展示中华优秀传统文化代表性物证的机构，是国家历史文化艺术殿堂。',
+        'https://picsum.photos/800/600?random=148',
+        '["https://picsum.photos/800/600?random=149"]',
+        '["culture","history","heritage"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 12000, 2500,
+        '免费（需提前预约）', '09:00-17:30（6月-10月）/ 09:00-17:00（11月-5月），周一闭馆', '北京市东城区东长安街16号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000006', 'Summer Palace', '颐和园', 'summer-palace',
+        'A masterpiece of Chinese garden design and one of the best-preserved imperial gardens, featuring Kunming Lake, Longevity Hill, and the famous Long Corridor.',
+        '颐和园是中国古代皇家园林的典范，以昆明湖、万寿山为基础，汲取江南园林的设计手法而改建。',
+        'https://picsum.photos/800/600?random=150',
+        '["https://picsum.photos/800/600?random=151"]',
+        '["garden","heritage","scenic"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 25000, 5000,
+        '旺季30元/淡季20元', '06:30-18:00', '北京市海淀区新建宫门路19号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000007', 'Mutianyu Great Wall', '慕田峪长城', 'mutianyu-great-wall',
+        'A well-preserved Ming Dynasty Great Wall section with lush forests, cable car facilities, and a scenic toboggan ride, offering fewer crowds than Badaling.',
+        '慕田峪长城是明代长城的重要组成部分，登山道路险峻，景色优美，既保留了古长城的原始风貌，又具有现代化的游览设施。',
+        'https://picsum.photos/800/600?random=152',
+        '["https://picsum.photos/800/600?random=153"]',
+        '["hiking","scenic","heritage"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.8, 20000, 4200,
+        '成人票45元', '08:00-17:00', '北京市怀柔区慕田峪村',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000008', 'Shichahai Scenic Area', '什刹海风景区', 'shichahai-scenic-area',
+        'A historic area with three interconnected lakes surrounded by traditional hutongs, temples, and vibrant nightlife along the waterfront.',
+        '什刹海包括前海、后海和西海三个湖泊，汇集了众多名人故居和文化景观，是体验北京古城文化的好地方。',
+        'https://picsum.photos/800/600?random=154',
+        '["https://picsum.photos/800/600?random=155"]',
+        '["nightlife","culture","scenic"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 3048, 800,
+        '免费', '全天开放', '北京市西城区前海西街后海地区',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000009', 'POP MART City Paradise', '泡泡玛特城市乐园', 'pop-mart-city-paradise',
+        'An immersive art toy theme park featuring collectible art toys, interactive installations, and creative experiences in a modern setting.',
+        '泡泡玛特城市乐园是一个集艺术展览、互动娱乐、文创商品和餐饮于一体的创意主题乐园。',
+        'https://picsum.photos/800/600?random=156',
+        '["https://picsum.photos/800/600?random=157"]',
+        '["modern","family"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.5, 2457, 500,
+        '约88元起', '10:00-22:00', '北京市朝阳区郎家湖西路1号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000010', 'Chaoyang Park', '朝阳公园', 'chaoyang-park',
+        'One of Beijing''s largest urban parks featuring scenic lakes, recreational facilities, sports venues, and cultural attractions.',
+        '朝阳公园是北京市最大的城市公园之一，园内有人工湖、骑马场、高尔夫球场等休闲娱乐设施。',
+        'https://picsum.photos/800/600?random=158',
+        '["https://picsum.photos/800/600?random=159"]',
+        '["nature","scenic"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 1159, 300,
+        '免费', '06:00-21:00', '北京市朝阳区建国路1号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000011', 'Tiananmen Square', '天安门广场', 'tiananmen-square',
+        'China''s largest public square and political heart, surrounded by iconic buildings including the Great Hall of the People and National Museum.',
+        '天安门广场位于北京市中心，面积达44万平方米，是世界上最大的城市广场，中心矗立着人民英雄纪念碑。',
+        'https://picsum.photos/800/600?random=160',
+        '["https://picsum.photos/800/600?random=161"]',
+        '["heritage","cityscape","history"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.6, 8000, 1500,
+        '免费（需提前预约）', '全天开放', '北京市东城区长安街中段',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000012', 'Yonghe Temple', '雍和宫', 'yonghe-temple',
+        'The largest Tibetan Buddhist temple outside Tibet, housing the world''s tallest wooden Buddha statue with stunning golden-roofed architecture.',
+        '雍和宫是北京最大的喇嘛庙宇，拥有中国最大的木雕弥勒佛，庭院殿堂建筑宏伟壮观。',
+        'https://picsum.photos/800/600?random=162',
+        '["https://picsum.photos/800/600?random=163"]',
+        '["spiritual","culture","heritage"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 3830, 900,
+        '25元', '09:00-16:30', '北京市东城区雍和宫大街12号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000013', 'Old Summer Palace', '圆明园', 'old-summer-palace',
+        'A historical site of one of the world''s most magnificent imperial gardens from the Qing Dynasty, largely destroyed in 1860, now preserved as a park and museum.',
+        '圆明园是清代皇帝的夏日行宫，由圆明园、长春园和万春园三园组成，1860年被英法联军焚毁，现为遗址公园。',
+        'https://picsum.photos/800/600?random=164',
+        '["https://picsum.photos/800/600?random=165"]',
+        '["heritage","garden","history"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.5, 15000, 3000,
+        '10元', '07:00-19:00（4月-10月）/ 07:00-18:00（11月-3月）', '北京市海淀区清华西路28号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000014', 'National Natural History Museum of China', '国家自然博物馆', 'national-natural-history-museum',
+        'A comprehensive museum showcasing China''s natural history with fossils, minerals, animal specimens, and interactive educational exhibits.',
+        '国家自然博物馆是综合性的自然历史博物馆，馆内珍藏着大量古生物化石、矿物标本和动物标本。',
+        'https://picsum.photos/800/600?random=166',
+        '["https://picsum.photos/800/600?random=167"]',
+        '["culture","family"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.7, 2057, 450,
+        '免费（需提前预约）', '09:00-17:00（周二-周日）', '北京市东城区天桥南大街126号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000015', 'Beijing Zoo', '北京动物园', 'beijing-zoo',
+        'One of China''s earliest modern zoos established in 1906, housing over 7,000 animals of 600+ species, famous for giant pandas.',
+        '北京动物园是中国建立最早的城市动物园，园内饲养着来自世界各地的各类动物600多种、7000多只，大熊猫是明星动物。',
+        'https://picsum.photos/800/600?random=168',
+        '["https://picsum.photos/800/600?random=169"]',
+        '["wildlife","family"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.5, 10000, 2200,
+        '15元', '07:30-18:00（春夏季）/ 08:00-17:00（秋冬季）', '北京市西城区西直门外大街137号',
+        NOW(), NOW(), false);
+
+INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, ticket_price, opening_hours, address, created_at, updated_at, deleted)
+VALUES ('c1000000-0000-0000-0000-000000000016', 'Jingshan Park', '景山公园', 'jingshan-park',
+        'A historic hilltop park offering panoramic views of the Forbidden City and Beijing skyline, the best vantage point for photographing the palace.',
+        '景山公园是北京城区的最高点，从景山顶峰可以俯瞰整个北京城，特别是可以饱览故宫全景，是摄影爱好者的天堂。',
+        'https://picsum.photos/800/600?random=170',
+        '["https://picsum.photos/800/600?random=171"]',
+        '["scenic","heritage"]',
+        'a1111111-1111-1111-1111-111111111111', 'Beijing', 'PUBLISHED', 4.6, 5157, 1100,
+        '2元', '06:00-21:00', '北京市西城区景山西街44号',
+        NOW(), NOW(), false);
+
+-- Update existing 3 Beijing spots with enriched data (INSERT IGNORE does not update existing rows in MySQL)
+UPDATE spots SET
+  name_zh = '故宫博物院',
+  description = 'The imperial palace of the Ming and Qing dynasties, symbolizing ancient China''s majesty and cultural heritage. Housing over 1.8 million artifacts, it represents the pinnacle of Chinese architectural and artistic achievement.',
+  description_zh = '故宫博物院又称紫禁城，是明、清两代的皇宫，也是古老中国的标志和象征。当你置身于气派规整的高墙深院，能真真切切地感受到它曾经的荣耀。',
+  ticket_price = '旺季60元/淡季40元',
+  opening_hours = '08:30-17:00（4月-10月周二-周日）/ 08:30-16:30（11月-3月周二-周日），周一闭馆',
+  address = '北京市东城区景山前街4号',
+  updated_at = NOW()
+WHERE id = 'b1111111-1111-1111-1111-111111111111';
+
+UPDATE spots SET
+  description = 'The most visited section of the Great Wall of China, known as one of the Nine Fortified Passes, featuring watchtowers and magnificent mountain views.',
+  description_zh = '八达岭长城号称天下九塞之一，风光集巍峨险峻、秀丽苍翠于一体，是明长城景色中的精华。不到长城非好汉。',
+  tags = '["heritage","hiking","scenic"]',
+  ticket_price = '旺季40元/淡季35元',
+  opening_hours = '06:30-17:00（春夏季）/ 07:30-16:00（秋冬季）',
+  address = '北京市延庆区G6京藏高速58号出口',
+  updated_at = NOW()
+WHERE id = 'b2222222-2222-2222-2222-222222222222';
+
+UPDATE spots SET
+  name_zh = '天坛公园',
+  description = 'A UNESCO World Heritage Site where emperors performed rituals to heaven. Its iconic Hall of Prayer for Good Harvests represents the harmony between man and heaven.',
+  description_zh = '天坛是明、清两代帝王祭祀皇天、祈求丰收的场所，是世界上现存最大、保存最完整的祭天建筑群。',
+  rating = 4.7,
+  ticket_price = '旺季15元/淡季10元',
+  opening_hours = '06:00-22:00（公园）/ 08:00-17:00（景点）',
+  address = '北京市东城区天坛路1号',
+  updated_at = NOW()
+WHERE id = 'b3333333-3333-3333-3333-333333333333';
 
 -- Shanghai spots (city_id = a2222222-2222-2222-2222-222222222222)
 INSERT IGNORE INTO spots (id, name, name_zh, slug, description, description_zh, cover_image, gallery, tags, city_id, city_name, status, rating, view_count, bookmark_count, created_at, updated_at, deleted)

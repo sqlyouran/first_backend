@@ -48,7 +48,8 @@ class SpotControllerTest {
                 List.of("https://example.com/g1.jpg"), List.of("heritage"),
                 "city-id", "Beijing", "published",
                 "4.8", 1000, 200,
-                "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
+                "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z",
+                null, null, null);
     }
 
     @Test

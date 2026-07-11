@@ -120,6 +120,36 @@ class KnowledgeBuilderServiceTest {
         verify(vectorStore, times(3)).add(anyList());
     }
 
+    @Test
+    void buildSpotDocuments_includesPracticalInfo() {
+        SpotEntity spot = spotRepository.findBySlugAndDeletedFalse("forbidden-city").orElseThrow();
+        spot.setTicketPrice("旺季60元/淡季40元");
+        spot.setOpeningHours("08:30-17:00");
+        spot.setAddress("北京市东城区景山前街4号");
+        spotRepository.save(spot);
+
+        List<Document> docs = knowledgeBuilderService.buildSpotDocuments();
+
+        Document doc = docs.stream()
+                .filter(d -> "forbidden-city".equals(d.getMetadata().get("slug")))
+                .findFirst().orElseThrow();
+        assertTrue(doc.getText().contains("Ticket Price: 旺季60元/淡季40元"));
+        assertTrue(doc.getText().contains("Opening Hours: 08:30-17:00"));
+        assertTrue(doc.getText().contains("Address: 北京市东城区景山前街4号"));
+    }
+
+    @Test
+    void buildSpotDocuments_omitsNullPracticalFields() {
+        List<Document> docs = knowledgeBuilderService.buildSpotDocuments();
+
+        Document doc = docs.stream()
+                .filter(d -> "great-wall".equals(d.getMetadata().get("slug")))
+                .findFirst().orElseThrow();
+        assertFalse(doc.getText().contains("Ticket Price"));
+        assertFalse(doc.getText().contains("Opening Hours"));
+        assertFalse(doc.getText().contains("Address"));
+    }
+
     private void seedData() {
         CityEntity beijing = new CityEntity();
         beijing.setName("Beijing");

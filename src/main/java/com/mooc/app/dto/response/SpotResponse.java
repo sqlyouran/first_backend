@@ -46,6 +46,14 @@ public class SpotResponse extends BaseResponse {
     @JsonProperty("updated_at")
     private final String updatedAt;
 
+    @JsonProperty("ticket_price")
+    private final String ticketPrice;
+
+    @JsonProperty("opening_hours")
+    private final String openingHours;
+
+    private final String address;
+
     @JsonCreator
     public SpotResponse(
             @JsonProperty("request_id") String requestId,
@@ -65,7 +73,10 @@ public class SpotResponse extends BaseResponse {
             @JsonProperty("view_count") int viewCount,
             @JsonProperty("bookmark_count") int bookmarkCount,
             @JsonProperty("created_at") String createdAt,
-            @JsonProperty("updated_at") String updatedAt) {
+            @JsonProperty("updated_at") String updatedAt,
+            @JsonProperty("ticket_price") String ticketPrice,
+            @JsonProperty("opening_hours") String openingHours,
+            @JsonProperty("address") String address) {
         super(requestId);
         this.id = id;
         this.name = name;
@@ -84,6 +95,9 @@ public class SpotResponse extends BaseResponse {
         this.bookmarkCount = bookmarkCount;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.ticketPrice = ticketPrice;
+        this.openingHours = openingHours;
+        this.address = address;
     }
 
     public String getId() { return id; }
@@ -103,4 +117,7 @@ public class SpotResponse extends BaseResponse {
     public int getBookmarkCount() { return bookmarkCount; }
     public String getCreatedAt() { return createdAt; }
     public String getUpdatedAt() { return updatedAt; }
+    public String getTicketPrice() { return ticketPrice; }
+    public String getOpeningHours() { return openingHours; }
+    public String getAddress() { return address; }
 }

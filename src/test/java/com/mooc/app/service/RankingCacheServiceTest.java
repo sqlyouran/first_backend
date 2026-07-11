@@ -157,7 +157,8 @@ class RankingCacheServiceTest {
                     "https://example.com/img.jpg", List.of(), List.of(),
                     "city-1", "Beijing", "published",
                     "4.5", 100 + i, 50 + i,
-                    "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z"
+                    "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z",
+                    null, null, null
             ));
         }
         return items;

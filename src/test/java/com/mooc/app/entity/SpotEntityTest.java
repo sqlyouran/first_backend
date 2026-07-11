@@ -46,6 +46,37 @@ class SpotEntityTest {
     }
 
     @Test
+    void practicalFields_canBeNull() {
+        SpotEntity spot = createSampleSpot();
+        spot.setSlug("null-practical-fields");
+        // ticketPrice, openingHours, address default to null
+        em.persist(spot);
+        em.flush();
+
+        SpotEntity found = em.find(SpotEntity.class, spot.getId());
+        assertNotNull(found);
+        assertNull(found.getTicketPrice());
+        assertNull(found.getOpeningHours());
+        assertNull(found.getAddress());
+    }
+
+    @Test
+    void practicalFields_canBeFilled() {
+        SpotEntity spot = createSampleSpot();
+        spot.setSlug("filled-practical-fields");
+        spot.setTicketPrice("旺季60元/淡季40元");
+        spot.setOpeningHours("08:30-17:00（4月-10月）");
+        spot.setAddress("北京市东城区景山前街4号");
+        em.persist(spot);
+        em.flush();
+
+        SpotEntity found = em.find(SpotEntity.class, spot.getId());
+        assertEquals("旺季60元/淡季40元", found.getTicketPrice());
+        assertEquals("08:30-17:00（4月-10月）", found.getOpeningHours());
+        assertEquals("北京市东城区景山前街4号", found.getAddress());
+    }
+
+    @Test
     void slugUniqueConstraintViolation() {
         SpotEntity spot1 = createSampleSpot();
         em.persist(spot1);

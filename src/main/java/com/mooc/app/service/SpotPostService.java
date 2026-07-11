@@ -125,7 +125,10 @@ public class SpotPostService {
                 spot.getViewCount(),
                 spot.getBookmarkCount(),
                 spot.getCreatedAt() != null ? spot.getCreatedAt().toString() : null,
-                spot.getUpdatedAt() != null ? spot.getUpdatedAt().toString() : null
+                spot.getUpdatedAt() != null ? spot.getUpdatedAt().toString() : null,
+                spot.getTicketPrice(),
+                spot.getOpeningHours(),
+                spot.getAddress()
         );
     }
 }

@@ -98,13 +98,45 @@ class SpotQueryToolTest {
         assertTrue(result.contains("Spot not found"));
     }
 
+    @Test
+    void getSpotDetails_includesPracticalInfo() {
+        SpotEntity spot = createSpot("Forbidden City", "故宫", "forbidden-city", "Beijing",
+                new BigDecimal("4.8"), List.of("heritage"));
+        spot.setTicketPrice("旺季60元/淡季40元");
+        spot.setOpeningHours("08:30-17:00");
+        spot.setAddress("北京市东城区景山前街4号");
+        when(spotRepository.findBySlugAndDeletedFalse("forbidden-city"))
+                .thenReturn(Optional.of(spot));
+
+        String result = spotQueryTool.getSpotDetails("forbidden-city");
+
+        assertTrue(result.contains("Ticket Price: 旺季60元/淡季40元"));
+        assertTrue(result.contains("Opening Hours: 08:30-17:00"));
+        assertTrue(result.contains("Address: 北京市东城区景山前街4号"));
+    }
+
+    @Test
+    void getSpotDetails_omitsNullPracticalFields() {
+        SpotEntity spot = createSpot("Some Spot", "某景点", "some-spot", "Beijing",
+                new BigDecimal("4.0"), List.of("park"));
+        when(spotRepository.findBySlugAndDeletedFalse("some-spot"))
+                .thenReturn(Optional.of(spot));
+
+        String result = spotQueryTool.getSpotDetails("some-spot");
+
+        assertFalse(result.contains("Ticket Price"));
+        assertFalse(result.contains("Opening Hours"));
+        assertFalse(result.contains("Address"));
+    }
+
     // === getTopRatedSpots ===
 
     @Test
     void getTopRatedSpots_returnsFormattedList() {
         SpotResponse spot = new SpotResponse("req", "id-1", "Forbidden City", "故宫",
                 "forbidden-city", "desc", "desc-zh", null, null, null,
-                null, "Beijing", "published", "4.9", 1000, 500, null, null);
+                null, "Beijing", "published", "4.9", 1000, 500, null, null,
+                null, null, null);
         SpotRankingResponse ranking = new SpotRankingResponse("req", "rating", List.of(spot));
         when(spotService.getRanking(eq("rating"), eq(5), any())).thenReturn(ranking);
 

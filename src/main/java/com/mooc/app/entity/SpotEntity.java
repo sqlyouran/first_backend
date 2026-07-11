@@ -69,6 +69,18 @@ public class SpotEntity extends BaseEntity {
     @Column(name = "bookmark_count")
     private int bookmarkCount = 0;
 
+    @Size(max = 200, message = "Ticket price must not exceed 200 characters")
+    @Column(name = "ticket_price", length = 200)
+    private String ticketPrice;
+
+    @Size(max = 500, message = "Opening hours must not exceed 500 characters")
+    @Column(name = "opening_hours", length = 500)
+    private String openingHours;
+
+    @Size(max = 500, message = "Address must not exceed 500 characters")
+    @Column(length = 500)
+    private String address;
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -110,4 +122,13 @@ public class SpotEntity extends BaseEntity {
 
     public int getBookmarkCount() { return bookmarkCount; }
     public void setBookmarkCount(int bookmarkCount) { this.bookmarkCount = bookmarkCount; }
+
+    public String getTicketPrice() { return ticketPrice; }
+    public void setTicketPrice(String ticketPrice) { this.ticketPrice = ticketPrice; }
+
+    public String getOpeningHours() { return openingHours; }
+    public void setOpeningHours(String openingHours) { this.openingHours = openingHours; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 }
