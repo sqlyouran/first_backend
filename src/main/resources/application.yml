@@ -8,6 +8,16 @@ spring:
         name: wanderchina-travel-services
         version: 1.0.0
         type: SYNC
+      client:
+        enabled: ${MCP_CLIENT_ENABLED:false}
+        stdio:
+          connections:
+            browser-use:
+              command: npx
+              args:
+                - -y
+                - "@playwright/mcp"
+                - --headless
     dashscope:
       api-key: ${DASHSCOPE_API_KEY:}
       chat:
@@ -76,3 +86,7 @@ app:
     keyword-top-k: 10
     suggest-top-k: 5
     similarity-threshold: 0.3
+  enrichment:
+    cron: "0 0 2 * * *"
+    stale-days: 7
+    critical-days: 30

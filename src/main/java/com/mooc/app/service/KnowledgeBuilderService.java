@@ -185,4 +185,23 @@ public class KnowledgeBuilderService {
 
         return List.of(doc);
     }
+
+    /**
+     * Incrementally refresh a single spot's document in the vector store.
+     * Deletes the old document (by document ID built from slug) and writes a new one.
+     */
+    public void refreshSpotDocument(SpotEntity spot) {
+        String documentId = "spot-" + spot.getSlug();
+        try {
+            vectorStore.delete(List.of(documentId));
+            log.debug("Deleted old spot document: {}", documentId);
+        } catch (Exception e) {
+            log.warn("Failed to delete old spot document {}: {}", documentId, e.getMessage());
+        }
+        Document newDoc = toSpotDocument(spot);
+        // Override the auto-generated ID with our stable slug-based ID
+        Document stableDoc = new Document(documentId, newDoc.getText(), newDoc.getMetadata());
+        vectorStore.add(List.of(stableDoc));
+        log.info("Refreshed spot document: {} ({})", spot.getName(), spot.getSlug());
+    }
 }

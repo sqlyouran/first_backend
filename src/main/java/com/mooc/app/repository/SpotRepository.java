@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,4 +37,9 @@ public interface SpotRepository extends JpaRepository<SpotEntity, UUID> {
             "LOWER(s.descriptionZh) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
             "LOWER(s.cityName) LIKE LOWER(CONCAT('%', :q, '%')))")
     List<SpotEntity> searchByKeyword(@Param("q") String query);
+
+    @Query("SELECT s FROM SpotEntity s WHERE s.deleted = false AND s.status = 'PUBLISHED' " +
+            "AND (s.dataRefreshedAt IS NULL OR s.dataRefreshedAt < :cutoff) " +
+            "ORDER BY s.dataRefreshedAt ASC NULLS FIRST")
+    List<SpotEntity> findStaleSpots(@Param("cutoff") Instant cutoff);
 }

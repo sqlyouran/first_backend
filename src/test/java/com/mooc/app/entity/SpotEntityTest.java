@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,6 +87,56 @@ class SpotEntityTest {
         em.persist(spot2);
 
         assertThrows(ConstraintViolationException.class, () -> em.flush());
+    }
+
+    @Test
+    void dataRefreshedAt_canBeNull_persistedAsNull() {
+        SpotEntity spot = createSampleSpot();
+        spot.setSlug("null-data-refreshed");
+        // dataRefreshedAt not set → should persist as null
+        em.persist(spot);
+        em.flush();
+
+        SpotEntity found = em.find(SpotEntity.class, spot.getId());
+        assertNotNull(found);
+        assertNull(found.getDataRefreshedAt());
+    }
+
+    @Test
+    void dataRefreshedAt_canBeSetAndRetrieved() {
+        SpotEntity spot = createSampleSpot();
+        spot.setSlug("set-data-refreshed");
+        Instant refreshedAt = Instant.parse("2026-07-11T02:00:00Z");
+        spot.setDataRefreshedAt(refreshedAt);
+        em.persist(spot);
+        em.flush();
+
+        SpotEntity found = em.find(SpotEntity.class, spot.getId());
+        assertNotNull(found);
+        assertEquals(refreshedAt, found.getDataRefreshedAt());
+    }
+
+    @Test
+    void dataRefreshedAt_doesNotChangeWithViewCount() {
+        SpotEntity spot = createSampleSpot();
+        spot.setSlug("viewcount-independence");
+        Instant refreshedAt = Instant.parse("2026-07-11T02:00:00Z");
+        spot.setDataRefreshedAt(refreshedAt);
+        em.persist(spot);
+        em.flush();
+        em.clear();
+
+        // Increment viewCount only
+        SpotEntity found = em.find(SpotEntity.class, spot.getId());
+        found.setViewCount(found.getViewCount() + 1);
+        em.merge(found);
+        em.flush();
+        em.clear();
+
+        SpotEntity updated = em.find(SpotEntity.class, spot.getId());
+        // updatedAt should have changed (due to @PreUpdate)
+        // but dataRefreshedAt must remain the same
+        assertEquals(refreshedAt, updated.getDataRefreshedAt());
     }
 
     static SpotEntity createSampleSpot() {

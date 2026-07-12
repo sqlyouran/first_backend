@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -81,6 +82,9 @@ public class SpotEntity extends BaseEntity {
     @Column(length = 500)
     private String address;
 
+    @Column(name = "data_refreshed_at")
+    private Instant dataRefreshedAt;
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -131,4 +135,7 @@ public class SpotEntity extends BaseEntity {
 
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+
+    public Instant getDataRefreshedAt() { return dataRefreshedAt; }
+    public void setDataRefreshedAt(Instant dataRefreshedAt) { this.dataRefreshedAt = dataRefreshedAt; }
 }

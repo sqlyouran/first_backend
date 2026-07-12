@@ -11,6 +11,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -114,6 +116,74 @@ class SpotRepositoryTest {
         assertEquals(2, result.size());
         assertEquals("High", result.get(0).getName());
         assertEquals("Low", result.get(1).getName());
+    }
+
+    @Test
+    void findStaleSpots_returnsStaleSpotsSortedByPriority() {
+        Instant now = Instant.now();
+        // 35 days ago = critical (>30 days)
+        SpotEntity critical = createSpot("Critical Spot", "critical-spot", BEIJING_ID, SpotStatus.PUBLISHED);
+        critical.setDataRefreshedAt(now.minus(35, ChronoUnit.DAYS));
+        em.merge(critical);
+
+        // 10 days ago = normal (7-30 days)
+        SpotEntity normal = createSpot("Normal Spot", "normal-spot", BEIJING_ID, SpotStatus.PUBLISHED);
+        normal.setDataRefreshedAt(now.minus(10, ChronoUnit.DAYS));
+        em.merge(normal);
+
+        // 2 days ago = NOT stale (< 7 days)
+        SpotEntity fresh = createSpot("Fresh Spot", "fresh-spot", BEIJING_ID, SpotStatus.PUBLISHED);
+        fresh.setDataRefreshedAt(now.minus(2, ChronoUnit.DAYS));
+        em.merge(fresh);
+
+        em.flush();
+        em.clear();
+
+        Instant cutoff = now.minus(7, ChronoUnit.DAYS);
+        List<SpotEntity> result = spotRepository.findStaleSpots(cutoff);
+
+        assertEquals(2, result.size());
+        // critical first (35 days), then normal (10 days)
+        assertEquals("Critical Spot", result.get(0).getName());
+        assertEquals("Normal Spot", result.get(1).getName());
+    }
+
+    @Test
+    void findStaleSpots_includesNullDataRefreshedAt() {
+        SpotEntity nullRefresh = createSpot("Null Refresh", "null-refresh", BEIJING_ID, SpotStatus.PUBLISHED);
+        // dataRefreshedAt not set → null → infinitely stale
+        em.flush();
+        em.clear();
+
+        Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+        List<SpotEntity> result = spotRepository.findStaleSpots(cutoff);
+
+        assertTrue(result.stream().anyMatch(s -> "null-refresh".equals(s.getSlug())));
+        // null dataRefreshedAt should come first (highest priority)
+        assertEquals("Null Refresh", result.get(0).getName());
+    }
+
+    @Test
+    void findStaleSpots_excludesDraftAndDeleted() {
+        Instant oldDate = Instant.now().minus(30, ChronoUnit.DAYS);
+
+        SpotEntity draft = createSpot("Draft Spot", "draft-stale", BEIJING_ID, SpotStatus.DRAFT);
+        draft.setDataRefreshedAt(oldDate);
+        em.merge(draft);
+
+        SpotEntity deleted = createSpot("Deleted Spot", "deleted-stale", BEIJING_ID, SpotStatus.PUBLISHED);
+        deleted.setDataRefreshedAt(oldDate);
+        em.merge(deleted);
+        em.flush();
+        deleted.markDeleted();
+        em.merge(deleted);
+        em.flush();
+        em.clear();
+
+        Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+        List<SpotEntity> result = spotRepository.findStaleSpots(cutoff);
+
+        assertEquals(0, result.size());
     }
 
     private SpotEntity createSpot(String name, String slug, UUID cityId, SpotStatus status) {

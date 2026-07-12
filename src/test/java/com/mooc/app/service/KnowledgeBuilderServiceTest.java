@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
@@ -148,6 +149,37 @@ class KnowledgeBuilderServiceTest {
         assertFalse(doc.getText().contains("Ticket Price"));
         assertFalse(doc.getText().contains("Opening Hours"));
         assertFalse(doc.getText().contains("Address"));
+    }
+
+    @Test
+    void refreshSpotDocument_deletesOldAndWritesNew() {
+        SpotEntity spot = spotRepository.findBySlugAndDeletedFalse("forbidden-city").orElseThrow();
+        spot.setTicketPrice("旺季80元");
+        spotRepository.save(spot);
+
+        knowledgeBuilderService.refreshSpotDocument(spot);
+
+        verify(vectorStore).delete(List.of("spot-forbidden-city"));
+        verify(vectorStore).add(argThat(docs -> {
+            Document doc = docs.get(0);
+            return doc.getId().equals("spot-forbidden-city")
+                    && doc.getText().contains("Ticket Price: 旺季80元");
+        }));
+    }
+
+    @Test
+    void refreshSpotDocument_nonExistentSlug_doesNotThrow() {
+        SpotEntity newSpot = new SpotEntity();
+        newSpot.setName("New Spot");
+        newSpot.setSlug("brand-new-spot");
+        newSpot.setCityId(spotRepository.findAll().get(0).getCityId());
+        newSpot.setStatus(SpotStatus.PUBLISHED);
+        spotRepository.save(newSpot);
+
+        // delete will be called even if nothing exists — it should not throw
+        assertDoesNotThrow(() -> knowledgeBuilderService.refreshSpotDocument(newSpot));
+        verify(vectorStore).delete(List.of("spot-brand-new-spot"));
+        verify(vectorStore).add(anyList());
     }
 
     private void seedData() {
