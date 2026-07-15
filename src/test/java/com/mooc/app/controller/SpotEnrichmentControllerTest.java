@@ -6,17 +6,28 @@ import com.mooc.app.entity.SpotEntity;
 import com.mooc.app.entity.SpotStatus;
 import com.mooc.app.repository.SpotEnrichmentReportRepository;
 import com.mooc.app.repository.SpotRepository;
+import com.mooc.app.service.JwtService;
 import com.mooc.app.service.SpotDataCollectorService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.impl.DefaultClaims;
+import io.jsonwebtoken.security.Keys;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,6 +45,27 @@ class SpotEnrichmentControllerTest {
     @MockBean private SpotRepository spotRepository;
     @MockBean private SpotDataCollectorService collectorService;
     @MockBean private SpotEnrichmentReportRepository reportRepository;
+    @MockBean private JwtService jwtService;
+
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
+
+    private String adminToken;
+
+    @BeforeEach
+    void setup() {
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        String userId = UUID.randomUUID().toString();
+        adminToken = Jwts.builder()
+                .subject(userId)
+                .issuedAt(Date.from(Instant.now()))
+                .expiration(Date.from(Instant.now().plusSeconds(1800)))
+                .signWith(key)
+                .compact();
+
+        Claims claims = new DefaultClaims(Map.of("sub", userId));
+        when(jwtService.parseToken(adminToken)).thenReturn(Optional.of(claims));
+    }
 
     @Test
     void getStaleSpots_returnsList() throws Exception {
@@ -48,7 +80,8 @@ class SpotEnrichmentControllerTest {
 
         when(spotRepository.findStaleSpots(any(Instant.class))).thenReturn(List.of(spot));
 
-        mockMvc.perform(get("/api/spots/stale"))
+        mockMvc.perform(get("/api/spots/stale")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.items[0].slug").value("forbidden-city"))
@@ -57,10 +90,17 @@ class SpotEnrichmentControllerTest {
     }
 
     @Test
+    void getStaleSpots_noToken_returns401() throws Exception {
+        mockMvc.perform(get("/api/spots/stale"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void triggerEnrichment_startsCollection() throws Exception {
         when(collectorService.isRunning()).thenReturn(false);
 
-        mockMvc.perform(post("/api/spots/enrichment/trigger"))
+        mockMvc.perform(post("/api/spots/enrichment/trigger")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
 
         verify(collectorService).collectStaleSpotsAsync();
@@ -70,7 +110,8 @@ class SpotEnrichmentControllerTest {
     void triggerEnrichment_alreadyRunning_returns409() throws Exception {
         when(collectorService.isRunning()).thenReturn(true);
 
-        mockMvc.perform(post("/api/spots/enrichment/trigger"))
+        mockMvc.perform(post("/api/spots/enrichment/trigger")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error_code").value("already_running"));
     }
@@ -88,7 +129,8 @@ class SpotEnrichmentControllerTest {
 
         when(reportRepository.findTopByOrderByStartedAtDesc()).thenReturn(Optional.of(report));
 
-        mockMvc.perform(get("/api/spots/enrichment/report/latest"))
+        mockMvc.perform(get("/api/spots/enrichment/report/latest")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.run_id").value("run-123"))
                 .andExpect(jsonPath("$.total_attempted").value(5))
@@ -99,7 +141,8 @@ class SpotEnrichmentControllerTest {
     void getLatestReport_noReport_returns404() throws Exception {
         when(reportRepository.findTopByOrderByStartedAtDesc()).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/spots/enrichment/report/latest"))
+        mockMvc.perform(get("/api/spots/enrichment/report/latest")
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error_code").value("not_found"));
     }

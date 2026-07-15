@@ -60,7 +60,7 @@ public class AuthService {
 
         String code = generateCode();
         codeStore.save(normalizedEmail, code, CODE_TTL_SECONDS);
-        log.info("Verification code for {}: {}", normalizedEmail, code);
+        log.debug("Verification code generated");
     }
 
     public void register(String email, String code, String password, String ip) {

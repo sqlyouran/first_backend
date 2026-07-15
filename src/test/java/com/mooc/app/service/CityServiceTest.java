@@ -30,6 +30,9 @@ class CityServiceTest {
     @Mock
     private CityRepository cityRepository;
 
+    @Mock
+    private GenericCacheService cacheService;
+
     @InjectMocks
     private CityService cityService;
 

@@ -1,0 +1,15 @@
+# ===== Production Profile =====
+# Activate with: SPRING_PROFILES_ACTIVE=prod
+# This file overrides values from application.yml for production deployments.
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
+
+springdoc:
+  api-docs:
+    enabled: false

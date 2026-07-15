@@ -6,6 +6,7 @@ import com.mooc.app.dto.response.WeatherResponse;
 import com.mooc.app.exception.ServiceException;
 import com.mooc.app.service.ExchangeRateData;
 import com.mooc.app.service.ExchangeRateService;
+import com.mooc.app.service.JwtService;
 import com.mooc.app.service.WeatherData;
 import com.mooc.app.service.WeatherService;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,9 @@ class ServiceControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private JwtService jwtService;
 
     @MockBean
     private WeatherService weatherService;

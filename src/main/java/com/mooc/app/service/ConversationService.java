@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -93,11 +95,40 @@ public class ConversationService {
 
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<ConversationEntity> conversationPage = conversationRepository.findByUser(userId, pageable);
+        List<ConversationEntity> conversations = conversationPage.getContent();
+
+        // Batch-fetch other users
+        List<UUID> otherUserIds = conversations.stream()
+                .map(c -> c.getUserAId().equals(userId) ? c.getUserBId() : c.getUserAId())
+                .distinct()
+                .toList();
+        Map<UUID, UserEntity> userMap = new HashMap<>();
+        if (!otherUserIds.isEmpty()) {
+            userRepository.findAllById(otherUserIds).forEach(u -> userMap.put(u.getId(), u));
+        }
+
+        // Batch-fetch latest messages
+        List<UUID> convIds = conversations.stream().map(ConversationEntity::getId).toList();
+        Map<UUID, MessageEntity> latestMessageMap = new HashMap<>();
+        if (!convIds.isEmpty()) {
+            messageRepository.findLatestMessagesByConversationIds(convIds)
+                    .forEach(m -> latestMessageMap.put(m.getConversationId(), m));
+        }
+
+        // Batch-fetch unread counts
+        Map<UUID, Long> unreadMap = new HashMap<>();
+        if (!convIds.isEmpty() && !otherUserIds.isEmpty()) {
+            for (Object[] row : messageRepository.batchCountUnread(convIds, otherUserIds)) {
+                UUID convId = (UUID) row[0];
+                long count = (Long) row[1];
+                unreadMap.put(convId, count);
+            }
+        }
 
         List<ConversationItemResponse> items = new ArrayList<>();
-        for (ConversationEntity conv : conversationPage.getContent()) {
+        for (ConversationEntity conv : conversations) {
             UUID otherUserId = conv.getUserAId().equals(userId) ? conv.getUserBId() : conv.getUserAId();
-            UserEntity otherUser = userRepository.findById(otherUserId).orElse(null);
+            UserEntity otherUser = userMap.get(otherUserId);
 
             ConversationItemResponse.OtherUserInfo otherUserInfo;
             if (otherUser != null) {
@@ -113,15 +144,12 @@ public class ConversationService {
                         otherUserId.toString(), null, null, null, true);
             }
 
-            Page<MessageEntity> lastMessagePage = messageRepository.findByConversation(
-                    conv.getId(), PageRequest.of(0, 1));
-            String rawContent = lastMessagePage.hasContent()
-                    ? lastMessagePage.getContent().get(0).getContent() : "";
+            MessageEntity lastMsg = latestMessageMap.get(conv.getId());
+            String rawContent = lastMsg != null ? lastMsg.getContent() : "";
             String lastMessageContent = rawContent.length() > 50
                     ? rawContent.substring(0, 50) : rawContent;
 
-            long unreadCount = messageRepository.countByConversationIdAndSenderIdAndReadFalse(
-                    conv.getId(), otherUserId);
+            long unreadCount = unreadMap.getOrDefault(conv.getId(), 0L);
 
             items.add(new ConversationItemResponse(
                     conv.getId().toString(), otherUserInfo,
@@ -162,16 +190,7 @@ public class ConversationService {
 
     @Transactional(readOnly = true)
     public UnreadCountResponse getUnreadCount(UUID userId, String requestId) {
-        Page<ConversationEntity> allConversations = conversationRepository.findByUser(
-                userId, PageRequest.of(0, Integer.MAX_VALUE));
-
-        long totalUnread = 0;
-        for (ConversationEntity conv : allConversations.getContent()) {
-            UUID otherUserId = conv.getUserAId().equals(userId) ? conv.getUserBId() : conv.getUserAId();
-            totalUnread += messageRepository.countByConversationIdAndSenderIdAndReadFalse(
-                    conv.getId(), otherUserId);
-        }
-
+        long totalUnread = messageRepository.countTotalUnread(userId);
         return new UnreadCountResponse(requestId, totalUnread);
     }
 }

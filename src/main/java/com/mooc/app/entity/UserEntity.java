@@ -1,5 +1,6 @@
 package com.mooc.app.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mooc.app.converter.StringListConverter;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -26,6 +27,7 @@ public class UserEntity extends BaseEntity {
     @Column(name = "avatar_url", length = 2048)
     private String avatarUrl;
 
+    @JsonIgnore
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 

@@ -8,13 +8,17 @@ import com.mooc.app.service.KeywordResult;
 import com.mooc.app.service.KeywordSearchService;
 import com.mooc.app.util.AuthUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/search")
+@Validated
 public class SearchController {
 
     private final HybridSearchService hybridSearchService;
@@ -28,7 +32,7 @@ public class SearchController {
 
     @GetMapping
     public ResponseEntity<SearchResponse> search(
-            @RequestParam String q,
+            @RequestParam @NotBlank @Size(max = 200) String q,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String city,
             HttpServletRequest httpRequest) {
@@ -39,7 +43,7 @@ public class SearchController {
 
     @GetMapping("/suggest")
     public ResponseEntity<SearchSuggestResponse> suggest(
-            @RequestParam String q,
+            @RequestParam @NotBlank @Size(max = 200) String q,
             HttpServletRequest httpRequest) {
         String requestId = AuthUtil.getRequestId(httpRequest);
         List<KeywordResult> results = keywordSearchService.suggest(q);

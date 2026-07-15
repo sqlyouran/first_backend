@@ -3,6 +3,7 @@ package com.mooc.app.controller;
 import com.mooc.app.config.SecurityConfig;
 import com.mooc.app.dto.response.*;
 import com.mooc.app.service.HybridSearchService;
+import com.mooc.app.service.JwtService;
 import com.mooc.app.service.KeywordResult;
 import com.mooc.app.service.KeywordSearchService;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,8 @@ class SearchControllerTest {
     private HybridSearchService hybridSearchService;
     @MockBean
     private KeywordSearchService keywordSearchService;
+    @MockBean
+    private JwtService jwtService;
 
     @Test
     void search_validQuery_returns200AndSearchResponse() throws Exception {
@@ -75,12 +78,9 @@ class SearchControllerTest {
     }
 
     @Test
-    void suggest_emptyQuery_returnsEmptyList() throws Exception {
-        when(keywordSearchService.suggest(anyString())).thenReturn(List.of());
-
+    void suggest_blankQuery_returns422() throws Exception {
         mockMvc.perform(get("/api/search/suggest").param("q", " "))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isArray())
-                .andExpect(jsonPath("$.items").isEmpty());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error_code").value("validation_error"));
     }
 }

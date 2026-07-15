@@ -28,13 +28,16 @@ public class BookmarkService {
     private final PostRepository postRepository;
     private final SpotRepository spotRepository;
     private final NotificationService notificationService;
+    private final GenericCacheService cacheService;
 
     public BookmarkService(BookmarkRepository bookmarkRepository, PostRepository postRepository,
-                            SpotRepository spotRepository, NotificationService notificationService) {
+                            SpotRepository spotRepository, NotificationService notificationService,
+                            GenericCacheService cacheService) {
         this.bookmarkRepository = bookmarkRepository;
         this.postRepository = postRepository;
         this.spotRepository = spotRepository;
         this.notificationService = notificationService;
+        this.cacheService = cacheService;
     }
 
     public BookmarkResponse getBookmarkStatus(UUID entityId, EntityType entityType, Optional<UUID> optionalUserId, String requestId) {
@@ -59,6 +62,7 @@ public class BookmarkService {
                 postRepository.findByIdAndDeletedFalse(entityId).ifPresent(post ->
                         notificationService.deleteNotification(post.getAuthorId(), userId,
                                 NotificationType.POST_BOOKMARKED, entityId));
+                cacheService.evict("cache:posts:*");
             }
             return new BookmarkResponse(requestId, false);
         } else {
@@ -71,6 +75,7 @@ public class BookmarkService {
                 postRepository.findByIdAndDeletedFalse(entityId).ifPresent(post ->
                         notificationService.createNotification(post.getAuthorId(), userId,
                                 NotificationType.POST_BOOKMARKED, entityId, "post", null));
+                cacheService.evict("cache:posts:*");
             }
             return new BookmarkResponse(requestId, true);
         }

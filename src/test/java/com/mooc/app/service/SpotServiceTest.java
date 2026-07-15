@@ -34,6 +34,9 @@ class SpotServiceTest {
     @Mock
     private SpotRepository spotRepository;
 
+    @Mock
+    private GenericCacheService cacheService;
+
     @InjectMocks
     private SpotService spotService;
 

@@ -17,6 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -100,28 +103,32 @@ public class NotificationService {
         return notificationRepository.countByRecipientIdAndReadFalseAndDeletedFalse(userId);
     }
 
-    public String resolveActorNickname(UUID actorId) {
-        return userRepository.findById(actorId)
-                .map(u -> u.getNickname() != null ? u.getNickname() : u.getEmail())
-                .orElse("Unknown");
+    public Map<UUID, UserEntity> batchResolveActors(List<NotificationEntity> notifications) {
+        List<UUID> actorIds = notifications.stream()
+                .map(NotificationEntity::getActorId)
+                .distinct()
+                .toList();
+        if (actorIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, UserEntity> result = new HashMap<>();
+        userRepository.findAllById(actorIds).forEach(u -> result.put(u.getId(), u));
+        return result;
     }
 
-    public String resolveActorAvatarUrl(UUID actorId) {
-        return userRepository.findById(actorId)
-                .map(UserEntity::getAvatarUrl)
-                .orElse(null);
-    }
-
-    public String resolveActorUsername(UUID actorId) {
-        return userRepository.findById(actorId)
-                .map(UserEntity::getUsername)
-                .orElse(null);
-    }
-
-    public String resolveTargetTitle(UUID entityId) {
-        if (entityId == null) return null;
-        return postRepository.findByIdAndDeletedFalse(entityId)
-                .map(PostEntity::getTitle)
-                .orElse(null);
+    public Map<UUID, String> batchResolveTargetTitles(List<NotificationEntity> notifications) {
+        List<UUID> entityIds = notifications.stream()
+                .map(NotificationEntity::getEntityId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        if (entityIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, String> result = new HashMap<>();
+        postRepository.findAllById(entityIds).stream()
+                .filter(p -> !p.isDeleted())
+                .forEach(p -> result.put(p.getId(), p.getTitle()));
+        return result;
     }
 }

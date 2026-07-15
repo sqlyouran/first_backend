@@ -34,7 +34,7 @@ class AuthMeExtendedTest {
     void getMe_noToken_returns401() throws Exception {
         mockMvc.perform(get("/api/auth/me"))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.error_code").value("invalid_credentials"));
+            .andExpect(jsonPath("$.error_code").value("unauthorized"));
     }
 
     @Test

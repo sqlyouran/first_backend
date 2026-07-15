@@ -11,6 +11,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -125,6 +127,75 @@ class NotificationServiceTest {
         notificationService.deleteNotification(recipientId, actorId, NotificationType.POST_LIKED, postId);
 
         verify(notificationRepository, never()).delete(any());
+    }
+
+    // === Batch resolve tests ===
+
+    @Test
+    void batchResolveActors_multipleNotifications_singleQuery() {
+        UUID actor1 = UUID.randomUUID();
+        UUID actor2 = UUID.randomUUID();
+
+        NotificationEntity n1 = new NotificationEntity();
+        n1.setActorId(actor1);
+        NotificationEntity n2 = new NotificationEntity();
+        n2.setActorId(actor2);
+        NotificationEntity n3 = new NotificationEntity();
+        n3.setActorId(actor1);
+
+        UserEntity user1 = new UserEntity();
+        user1.setId(actor1);
+        user1.setNickname("Alice");
+        user1.setEmail("alice@test.com");
+        UserEntity user2 = new UserEntity();
+        user2.setId(actor2);
+        user2.setNickname("Bob");
+        user2.setEmail("bob@test.com");
+
+        when(userRepository.findAllById(List.of(actor1, actor2)))
+                .thenReturn(List.of(user1, user2));
+
+        Map<UUID, UserEntity> result = notificationService.batchResolveActors(List.of(n1, n2, n3));
+
+        assertEquals(2, result.size());
+        assertEquals("Alice", result.get(actor1).getNickname());
+        assertEquals("Bob", result.get(actor2).getNickname());
+        verify(userRepository).findAllById(List.of(actor1, actor2));
+    }
+
+    @Test
+    void batchResolveActors_emptyList_returnsEmptyMap() {
+        Map<UUID, UserEntity> result = notificationService.batchResolveActors(List.of());
+        assertTrue(result.isEmpty());
+        verify(userRepository, never()).findAllById(any());
+    }
+
+    @Test
+    void batchResolveTargetTitles_filtersNullEntityIds() {
+        NotificationEntity n1 = new NotificationEntity();
+        n1.setEntityId(postId);
+        NotificationEntity n2 = new NotificationEntity();
+        n2.setEntityId(null);
+
+        PostEntity post = new PostEntity();
+        post.setId(postId);
+        post.setTitle("Test Post");
+        when(postRepository.findAllById(List.of(postId))).thenReturn(List.of(post));
+
+        Map<UUID, String> result = notificationService.batchResolveTargetTitles(List.of(n1, n2));
+
+        assertEquals(1, result.size());
+        assertEquals("Test Post", result.get(postId));
+    }
+
+    @Test
+    void batchResolveTargetTitles_allNullEntityIds_returnsEmptyMap() {
+        NotificationEntity n1 = new NotificationEntity();
+        n1.setEntityId(null);
+
+        Map<UUID, String> result = notificationService.batchResolveTargetTitles(List.of(n1));
+        assertTrue(result.isEmpty());
+        verify(postRepository, never()).findAllById(any());
     }
 
 }

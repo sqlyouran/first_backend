@@ -1,5 +1,6 @@
 package com.mooc.app.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.mooc.app.dto.response.SpotListResponse;
 import com.mooc.app.dto.response.SpotRankingResponse;
 import com.mooc.app.dto.response.SpotResponse;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,6 +27,9 @@ public class SpotService {
     private static final Logger log = LoggerFactory.getLogger(SpotService.class);
     private static final int MAX_PAGE_SIZE = 100;
     private static final int MAX_RANKING_TOP = 50;
+    private static final String CACHE_KEY_PREFIX = "cache:spots:";
+    private static final Duration LIST_TTL = Duration.ofMinutes(5);
+    private static final Duration DETAIL_TTL = Duration.ofMinutes(10);
     private static final Map<String, Sort> SORT_MAP = Map.of(
             "latest", Sort.by(Sort.Direction.DESC, "createdAt"),
             "rating", Sort.by(Sort.Direction.DESC, "rating"),
@@ -38,9 +43,11 @@ public class SpotService {
     );
 
     private final SpotRepository spotRepository;
+    private final GenericCacheService cacheService;
 
-    public SpotService(SpotRepository spotRepository) {
+    public SpotService(SpotRepository spotRepository, GenericCacheService cacheService) {
         this.spotRepository = spotRepository;
+        this.cacheService = cacheService;
     }
 
     public SpotListResponse listSpots(int page, int size, UUID cityId, String citySlug, String sort, String requestId) {
@@ -53,6 +60,24 @@ public class SpotService {
         if (sortObj == null) {
             throw new SpotException(HttpStatus.BAD_REQUEST, "validation_error",
                     "Invalid sort option: " + sort);
+        }
+
+        // Build cache key
+        String cityPart = citySlug != null && !citySlug.isBlank() ? citySlug
+                : cityId != null ? cityId.toString() : "all";
+        String cacheKey = CACHE_KEY_PREFIX + "list:" + cityPart + ":" + sort + ":" + page + ":" + size;
+        TypeReference<SpotListCacheEntry> typeRef = new TypeReference<>() {};
+        SpotListCacheEntry cached = cacheService.get(cacheKey, typeRef);
+        if (cached != null) {
+            log.debug("Spot list cache hit for key={}", cacheKey);
+            List<SpotResponse> items = cached.items().stream()
+                    .map(r -> new SpotResponse(requestId, r.getId(), r.getName(), r.getNameZh(), r.getSlug(),
+                            r.getDescription(), r.getDescriptionZh(), r.getCoverImage(), r.getGallery(), r.getTags(),
+                            r.getCityId(), r.getCityName(), r.getStatus(), r.getRating(), r.getViewCount(),
+                            r.getBookmarkCount(), r.getCreatedAt(), r.getUpdatedAt(), r.getTicketPrice(),
+                            r.getOpeningHours(), r.getAddress()))
+                    .toList();
+            return new SpotListResponse(requestId, items, cached.total(), page, size);
         }
 
         int zeroBasedPage = Math.max(0, page - 1);
@@ -71,17 +96,40 @@ public class SpotService {
                 .map(spot -> toSpotResponse(spot, requestId))
                 .toList();
 
+        cacheService.put(cacheKey, new SpotListCacheEntry(items, result.getTotalElements()), LIST_TTL);
         return new SpotListResponse(requestId, items, result.getTotalElements(), page, size);
     }
 
     public SpotResponse getSpot(String idOrSlug, String requestId) {
+        boolean isSlug = !isUuid(idOrSlug);
+        String cacheKey = CACHE_KEY_PREFIX + "detail:" + idOrSlug;
+        if (isSlug) {
+            SpotResponse cached = cacheService.get(cacheKey, new TypeReference<>() {});
+            if (cached != null) {
+                log.debug("Spot detail cache hit for key={}", cacheKey);
+                return new SpotResponse(requestId, cached.getId(), cached.getName(), cached.getNameZh(), cached.getSlug(),
+                        cached.getDescription(), cached.getDescriptionZh(), cached.getCoverImage(), cached.getGallery(),
+                        cached.getTags(), cached.getCityId(), cached.getCityName(), cached.getStatus(), cached.getRating(),
+                        cached.getViewCount(), cached.getBookmarkCount(), cached.getCreatedAt(), cached.getUpdatedAt(),
+                        cached.getTicketPrice(), cached.getOpeningHours(), cached.getAddress());
+            }
+        }
+
         SpotEntity spot = findSpotByIdOrSlug(idOrSlug);
 
         if (spot.getStatus() != SpotStatus.PUBLISHED) {
             throw new SpotException(HttpStatus.NOT_FOUND, "not_found", "Spot not found");
         }
 
-        return toSpotResponse(spot, requestId);
+        SpotResponse response = toSpotResponse(spot, requestId);
+        if (isSlug) {
+            cacheService.put(cacheKey, response, DETAIL_TTL);
+        }
+        return response;
+    }
+
+    private static boolean isUuid(String s) {
+        try { UUID.fromString(s); return true; } catch (IllegalArgumentException e) { return false; }
     }
 
     private SpotEntity findSpotByIdOrSlug(String idOrSlug) {
@@ -144,4 +192,6 @@ public class SpotService {
                 spot.getAddress()
         );
     }
+
+    record SpotListCacheEntry(List<SpotResponse> items, long total) {}
 }

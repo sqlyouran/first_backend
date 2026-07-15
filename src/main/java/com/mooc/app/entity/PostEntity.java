@@ -46,6 +46,12 @@ public class PostEntity extends BaseEntity {
     @Column(name = "author_id", nullable = false)
     private UUID authorId;
 
+    @Column(name = "cached_up_vote_count", nullable = false)
+    private int cachedUpVoteCount = 0;
+
+    @Column(name = "cached_comment_count", nullable = false)
+    private int cachedCommentCount = 0;
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
@@ -66,4 +72,10 @@ public class PostEntity extends BaseEntity {
 
     public UUID getAuthorId() { return authorId; }
     public void setAuthorId(UUID authorId) { this.authorId = authorId; }
+
+    public int getCachedUpVoteCount() { return cachedUpVoteCount; }
+    public void setCachedUpVoteCount(int cachedUpVoteCount) { this.cachedUpVoteCount = cachedUpVoteCount; }
+
+    public int getCachedCommentCount() { return cachedCommentCount; }
+    public void setCachedCommentCount(int cachedCommentCount) { this.cachedCommentCount = cachedCommentCount; }
 }

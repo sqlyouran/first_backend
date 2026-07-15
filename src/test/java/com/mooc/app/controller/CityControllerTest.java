@@ -5,6 +5,7 @@ import com.mooc.app.dto.response.CityListResponse;
 import com.mooc.app.dto.response.CityResponse;
 import com.mooc.app.exception.CityException;
 import com.mooc.app.service.CityService;
+import com.mooc.app.service.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -27,6 +28,9 @@ class CityControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private JwtService jwtService;
 
     @MockBean
     private CityService cityService;

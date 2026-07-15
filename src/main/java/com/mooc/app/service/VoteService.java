@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -25,13 +26,17 @@ public class VoteService {
     private final VoteRepository voteRepository;
     private final PostRepository postRepository;
     private final NotificationService notificationService;
+    private final GenericCacheService cacheService;
 
-    public VoteService(VoteRepository voteRepository, PostRepository postRepository, NotificationService notificationService) {
+    public VoteService(VoteRepository voteRepository, PostRepository postRepository,
+                       NotificationService notificationService, GenericCacheService cacheService) {
         this.voteRepository = voteRepository;
         this.postRepository = postRepository;
         this.notificationService = notificationService;
+        this.cacheService = cacheService;
     }
 
+    @Transactional
     public VoteResponse vote(UUID postId, UUID userId, String voteTypeStr, String requestId) {
         PostEntity post = postRepository.findByIdAndDeletedFalse(postId)
                 .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Post not found"));
@@ -53,9 +58,11 @@ public class VoteService {
             vote.setVoteType(voteType);
             voteRepository.save(vote);
             if (voteType == VoteType.UP) {
+                postRepository.incrementUpVoteCount(postId, 1);
                 notificationService.createNotification(post.getAuthorId(), userId,
                         NotificationType.POST_LIKED, postId, "post", null);
             }
+            cacheService.evict("cache:posts:*");
             return new VoteResponse(requestId, voteType.name().toLowerCase());
         }
 
@@ -63,22 +70,27 @@ public class VoteService {
         if (existingVote.getVoteType() == voteType) {
             voteRepository.delete(existingVote);
             if (voteType == VoteType.UP) {
+                postRepository.incrementUpVoteCount(postId, -1);
                 notificationService.deleteNotification(post.getAuthorId(), userId,
                         NotificationType.POST_LIKED, postId);
             }
+            cacheService.evict("cache:posts:*");
             return new VoteResponse(requestId, null);
         } else {
             VoteType previousType = existingVote.getVoteType();
             existingVote.setVoteType(voteType);
             voteRepository.save(existingVote);
-            // Handle notification for UP/DOWN switch
+            // Handle notification and counter for UP/DOWN switch
             if (previousType == VoteType.UP && voteType == VoteType.DOWN) {
+                postRepository.incrementUpVoteCount(postId, -1);
                 notificationService.deleteNotification(post.getAuthorId(), userId,
                         NotificationType.POST_LIKED, postId);
             } else if (previousType == VoteType.DOWN && voteType == VoteType.UP) {
+                postRepository.incrementUpVoteCount(postId, 1);
                 notificationService.createNotification(post.getAuthorId(), userId,
                         NotificationType.POST_LIKED, postId, "post", null);
             }
+            cacheService.evict("cache:posts:*");
             return new VoteResponse(requestId, voteType.name().toLowerCase());
         }
     }

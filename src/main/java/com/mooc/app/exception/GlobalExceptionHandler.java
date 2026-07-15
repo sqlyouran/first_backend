@@ -3,6 +3,7 @@ package com.mooc.app.exception;
 import com.mooc.app.dto.ErrorResponse;
 import com.mooc.app.filter.RequestIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -88,6 +89,19 @@ public class GlobalExceptionHandler {
         String requestId = getRequestId(request);
         ErrorResponse body = new ErrorResponse(requestId, ex.getErrorCode(), ex.getMessage());
         return ResponseEntity.status(ex.getStatus()).body(body);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex,
+                                                                     HttpServletRequest request) {
+        String requestId = getRequestId(request);
+        Map<String, String> details = new HashMap<>();
+        ex.getConstraintViolations().forEach(v ->
+            details.put(v.getPropertyPath().toString(), v.getMessage())
+        );
+        ErrorResponse body = new ErrorResponse(requestId, "validation_error",
+                "Request validation failed", details);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

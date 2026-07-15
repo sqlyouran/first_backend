@@ -1,5 +1,6 @@
 package com.mooc.app.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.mooc.app.dto.response.CityListResponse;
 import com.mooc.app.dto.response.CityResponse;
 import com.mooc.app.entity.CityEntity;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,17 +23,33 @@ public class CityService {
 
     private static final Logger log = LoggerFactory.getLogger(CityService.class);
     private static final int MAX_PAGE_SIZE = 100;
+    private static final String CACHE_KEY = "cache:cities:list";
+    private static final Duration TTL = Duration.ofMinutes(30);
 
     private final CityRepository cityRepository;
+    private final GenericCacheService cacheService;
 
-    public CityService(CityRepository cityRepository) {
+    public CityService(CityRepository cityRepository, GenericCacheService cacheService) {
         this.cityRepository = cityRepository;
+        this.cacheService = cacheService;
     }
 
     public CityListResponse listCities(int page, int size, String requestId) {
         if (size > MAX_PAGE_SIZE) {
             throw new CityException(HttpStatus.BAD_REQUEST, "validation_error",
                     "Page size must not exceed " + MAX_PAGE_SIZE);
+        }
+
+        String cacheKey = CACHE_KEY + ":" + page + ":" + size;
+        TypeReference<CityListCacheEntry> typeRef = new TypeReference<>() {};
+        CityListCacheEntry cached = cacheService.get(cacheKey, typeRef);
+        if (cached != null) {
+            log.debug("City list cache hit for key={}", cacheKey);
+            List<CityResponse> items = cached.items().stream()
+                    .map(r -> new CityResponse(requestId, r.getId(), r.getName(), r.getNameZh(), r.getSlug(),
+                            r.getCoverImage(), r.getDescription(), r.getBestSeason(), r.getCreatedAt(), r.getUpdatedAt()))
+                    .toList();
+            return new CityListResponse(requestId, items, cached.total(), page, size);
         }
 
         int zeroBasedPage = Math.max(0, page - 1);
@@ -42,6 +60,7 @@ public class CityService {
                 .map(city -> toCityResponse(city, requestId))
                 .toList();
 
+        cacheService.put(cacheKey, new CityListCacheEntry(items, result.getTotalElements()), TTL);
         return new CityListResponse(requestId, items, result.getTotalElements(), page, size);
     }
 
@@ -66,4 +85,6 @@ public class CityService {
                 city.getUpdatedAt() != null ? city.getUpdatedAt().toString() : null
         );
     }
+
+    private record CityListCacheEntry(List<CityResponse> items, long total) {}
 }

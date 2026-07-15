@@ -1,5 +1,6 @@
 package com.mooc.app.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class CityResponse extends BaseResponse {
@@ -26,9 +27,18 @@ public class CityResponse extends BaseResponse {
     @JsonProperty("updated_at")
     private final String updatedAt;
 
-    public CityResponse(String requestId, String id, String name, String nameZh, String slug,
-                        String coverImage, String description, String bestSeason,
-                        String createdAt, String updatedAt) {
+    @JsonCreator
+    public CityResponse(
+            @JsonProperty("request_id") String requestId,
+            @JsonProperty("id") String id,
+            @JsonProperty("name") String name,
+            @JsonProperty("name_zh") String nameZh,
+            @JsonProperty("slug") String slug,
+            @JsonProperty("cover_image") String coverImage,
+            @JsonProperty("description") String description,
+            @JsonProperty("best_season") String bestSeason,
+            @JsonProperty("created_at") String createdAt,
+            @JsonProperty("updated_at") String updatedAt) {
         super(requestId);
         this.id = id;
         this.name = name;

@@ -5,6 +5,7 @@ import com.mooc.app.dto.response.NotificationListResponse;
 import com.mooc.app.dto.response.NotificationListResponse.NotificationItemResponse;
 import com.mooc.app.dto.response.UnreadCountResponse;
 import com.mooc.app.entity.NotificationEntity;
+import com.mooc.app.entity.UserEntity;
 import com.mooc.app.service.JwtService;
 import com.mooc.app.service.NotificationService;
 import com.mooc.app.util.AuthUtil;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -37,8 +39,13 @@ public class NotificationController {
         String requestId = AuthUtil.getRequestId(httpRequest);
 
         Page<NotificationEntity> result = notificationService.listNotifications(userId, page, size);
-        List<NotificationItemResponse> items = result.getContent().stream()
-                .map(n -> toItemResponse(n))
+        List<NotificationEntity> notifications = result.getContent();
+
+        Map<UUID, UserEntity> actorMap = notificationService.batchResolveActors(notifications);
+        Map<UUID, String> titleMap = notificationService.batchResolveTargetTitles(notifications);
+
+        List<NotificationItemResponse> items = notifications.stream()
+                .map(n -> toItemResponse(n, actorMap, titleMap))
                 .toList();
 
         NotificationListResponse response = new NotificationListResponse(
@@ -71,11 +78,16 @@ public class NotificationController {
         return ResponseEntity.ok(new UnreadCountResponse(requestId, count));
     }
 
-    private NotificationItemResponse toItemResponse(NotificationEntity n) {
-        String actorNickname = notificationService.resolveActorNickname(n.getActorId());
-        String actorAvatarUrl = notificationService.resolveActorAvatarUrl(n.getActorId());
-        String actorUsername = notificationService.resolveActorUsername(n.getActorId());
-        String targetTitle = notificationService.resolveTargetTitle(n.getEntityId());
+    private NotificationItemResponse toItemResponse(NotificationEntity n,
+                                                       Map<UUID, UserEntity> actorMap,
+                                                       Map<UUID, String> titleMap) {
+        UserEntity actor = actorMap.get(n.getActorId());
+        String actorNickname = actor != null
+                ? (actor.getNickname() != null ? actor.getNickname() : actor.getEmail())
+                : "Unknown";
+        String actorAvatarUrl = actor != null ? actor.getAvatarUrl() : null;
+        String actorUsername = actor != null ? actor.getUsername() : null;
+        String targetTitle = n.getEntityId() != null ? titleMap.get(n.getEntityId()) : null;
 
         return new NotificationItemResponse(
                 n.getId().toString(),

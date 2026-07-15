@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyInt;
 
 @ExtendWith(MockitoExtension.class)
 class VoteServiceTest {
@@ -28,6 +29,7 @@ class VoteServiceTest {
     @Mock private VoteRepository voteRepository;
     @Mock private PostRepository postRepository;
     @Mock private NotificationService notificationService;
+    @Mock private GenericCacheService cacheService;
 
     private VoteService voteService;
 
@@ -38,7 +40,7 @@ class VoteServiceTest {
 
     @BeforeEach
     void setUp() {
-        voteService = new VoteService(voteRepository, postRepository, notificationService);
+        voteService = new VoteService(voteRepository, postRepository, notificationService, cacheService);
         post = new PostEntity();
         post.setId(postId);
         post.setAuthorId(authorId);
@@ -63,6 +65,7 @@ class VoteServiceTest {
                     v.getUserId().equals(userId)));
             verify(notificationService).createNotification(authorId, userId,
                     NotificationType.POST_LIKED, postId, "post", null);
+            verify(postRepository).incrementUpVoteCount(postId, 1);
         }
 
         @Test
@@ -75,6 +78,7 @@ class VoteServiceTest {
             assertEquals("down", response.getVoteType());
             verify(voteRepository).save(argThat(v -> v.getVoteType() == VoteType.DOWN));
             verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
+            verify(postRepository, never()).incrementUpVoteCount(any(), anyInt());
         }
 
         @Test
@@ -90,6 +94,7 @@ class VoteServiceTest {
             verify(voteRepository).delete(existingVote);
             verify(notificationService).deleteNotification(authorId, userId,
                     NotificationType.POST_LIKED, postId);
+            verify(postRepository).incrementUpVoteCount(postId, -1);
         }
 
         @Test
@@ -119,6 +124,7 @@ class VoteServiceTest {
             assertEquals(VoteType.DOWN, existingVote.getVoteType());
             verify(notificationService).deleteNotification(authorId, userId,
                     NotificationType.POST_LIKED, postId);
+            verify(postRepository).incrementUpVoteCount(postId, -1);
         }
 
         @Test
@@ -134,6 +140,7 @@ class VoteServiceTest {
             assertEquals(VoteType.UP, existingVote.getVoteType());
             verify(notificationService).createNotification(authorId, userId,
                     NotificationType.POST_LIKED, postId, "post", null);
+            verify(postRepository).incrementUpVoteCount(postId, 1);
         }
 
         @Test

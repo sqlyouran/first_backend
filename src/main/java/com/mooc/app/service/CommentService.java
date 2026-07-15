@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,15 +28,19 @@ public class CommentService {
     private final PostRepository postRepository;
     private final SpotRepository spotRepository;
     private final NotificationService notificationService;
+    private final GenericCacheService cacheService;
 
     public CommentService(CommentRepository commentRepository, PostRepository postRepository,
-                           SpotRepository spotRepository, NotificationService notificationService) {
+                           SpotRepository spotRepository, NotificationService notificationService,
+                           GenericCacheService cacheService) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.spotRepository = spotRepository;
         this.notificationService = notificationService;
+        this.cacheService = cacheService;
     }
 
+    @Transactional
     public CommentResponse createComment(UUID entityId, EntityType entityType, UUID userId, CreateCommentRequest request, String requestId) {
         validateEntityExists(entityId, entityType);
 
@@ -54,6 +59,11 @@ public class CommentService {
 
         CommentEntity saved = commentRepository.save(comment);
 
+        // Maintain denormalized counter for posts
+        if (entityType == EntityType.POST) {
+            postRepository.incrementCommentCount(entityId, 1);
+        }
+
         if (entityType == EntityType.POST) {
             if (parentComment != null) {
                 // Reply: notify parent comment author
@@ -70,6 +80,10 @@ public class CommentService {
                             NotificationType.POST_COMMENTED, entityId, "post", preview);
                 });
             }
+        }
+
+        if (entityType == EntityType.POST) {
+            cacheService.evict("cache:posts:*");
         }
 
         return toCommentResponse(saved, requestId);
@@ -98,6 +112,7 @@ public class CommentService {
         return new CommentListResponse(requestId, items, result.getTotalElements(), page, size);
     }
 
+    @Transactional
     public void deleteComment(UUID commentId, UUID userId) {
         CommentEntity comment = commentRepository.findByIdAndDeletedFalse(commentId)
                 .orElseThrow(() -> new PostException(HttpStatus.NOT_FOUND, "not_found", "Comment not found"));
@@ -108,6 +123,12 @@ public class CommentService {
 
         comment.markDeleted();
         commentRepository.save(comment);
+
+        // Maintain denormalized counter for posts
+        if (comment.getEntityType() == EntityType.POST) {
+            postRepository.incrementCommentCount(comment.getEntityId(), -1);
+            cacheService.evict("cache:posts:*");
+        }
     }
 
     private void validateEntityExists(UUID entityId, EntityType entityType) {

@@ -7,6 +7,7 @@ import com.mooc.app.dto.response.SpotPostsResponse;
 import com.mooc.app.dto.response.SpotRankingResponse;
 import com.mooc.app.dto.response.SpotResponse;
 import com.mooc.app.exception.SpotException;
+import com.mooc.app.service.JwtService;
 import com.mooc.app.service.RankingCacheService;
 import com.mooc.app.service.SpotPostService;
 import com.mooc.app.service.SpotService;
@@ -32,6 +33,9 @@ class SpotControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private JwtService jwtService;
 
     @MockBean
     private SpotService spotService;

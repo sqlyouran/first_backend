@@ -60,7 +60,7 @@ springdoc:
 
 app:
   jwt:
-    secret: dev-secret-key-change-in-production-min-32-chars!!
+    secret: ${JWT_SECRET:dev-secret-key-change-in-production-min-32-chars!!}
     access-token-expiry-seconds: 1800
     refresh-token-expiry-seconds: 604800
   weather:

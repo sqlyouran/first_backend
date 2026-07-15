@@ -159,6 +159,9 @@ class PostRepositoryTest {
         post.setSlug(title.toLowerCase().replaceAll("[^a-z0-9]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8));
         post = em.persist(post);
 
+        post.setCachedUpVoteCount(votes);
+        post.setCachedCommentCount(comments);
+
         for (int i = 0; i < votes; i++) {
             VoteEntity vote = new VoteEntity();
             vote.setPostId(post.getId());

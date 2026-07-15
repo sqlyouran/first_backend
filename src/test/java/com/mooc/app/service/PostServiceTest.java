@@ -10,10 +10,8 @@ import com.mooc.app.entity.PostStatus;
 import com.mooc.app.entity.UserEntity;
 import com.mooc.app.exception.PostException;
 import com.mooc.app.repository.BookmarkRepository;
-import com.mooc.app.repository.CommentRepository;
 import com.mooc.app.repository.PostRepository;
 import com.mooc.app.repository.UserRepository;
-import com.mooc.app.repository.VoteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,9 +36,8 @@ class PostServiceTest {
 
     @Mock private PostRepository postRepository;
     @Mock private UserRepository userRepository;
-    @Mock private VoteRepository voteRepository;
     @Mock private BookmarkRepository bookmarkRepository;
-    @Mock private CommentRepository commentRepository;
+    @Mock private GenericCacheService cacheService;
 
     private PostService postService;
 
@@ -49,7 +46,7 @@ class PostServiceTest {
 
     @BeforeEach
     void setUp() {
-        postService = new PostService(postRepository, userRepository, voteRepository, bookmarkRepository, commentRepository);
+        postService = new PostService(postRepository, userRepository, bookmarkRepository, cacheService);
     }
 
     private PostEntity createTestPost(UUID id, String title, PostStatus status) {
@@ -94,9 +91,7 @@ class PostServiceTest {
     }
 
     private void mockEmptyStats() {
-        when(voteRepository.batchCountUpVotes(anyList())).thenReturn(List.of());
         when(bookmarkRepository.batchCountBookmarks(anyList(), any())).thenReturn(List.of());
-        when(commentRepository.batchCountActiveComments(anyList(), any())).thenReturn(List.of());
     }
 
     // ======================== createPost ========================

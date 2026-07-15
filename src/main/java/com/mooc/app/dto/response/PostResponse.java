@@ -1,5 +1,6 @@
 package com.mooc.app.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
@@ -39,10 +40,23 @@ public class PostResponse extends BaseResponse {
     @JsonProperty("bookmark_count")
     private final long bookmarkCount;
 
-    public PostResponse(String requestId, String id, String title, String slug, String content, String coverImage,
-                        List<String> tags, String status, String authorId, String authorUsername,
-                        String createdAt, String updatedAt,
-                        long commentCount, long upVoteCount, long bookmarkCount) {
+    @JsonCreator
+    public PostResponse(
+            @JsonProperty("request_id") String requestId,
+            @JsonProperty("id") String id,
+            @JsonProperty("title") String title,
+            @JsonProperty("slug") String slug,
+            @JsonProperty("content") String content,
+            @JsonProperty("cover_image") String coverImage,
+            @JsonProperty("tags") List<String> tags,
+            @JsonProperty("status") String status,
+            @JsonProperty("author_id") String authorId,
+            @JsonProperty("author_username") String authorUsername,
+            @JsonProperty("created_at") String createdAt,
+            @JsonProperty("updated_at") String updatedAt,
+            @JsonProperty("comment_count") long commentCount,
+            @JsonProperty("up_vote_count") long upVoteCount,
+            @JsonProperty("bookmark_count") long bookmarkCount) {
         super(requestId);
         this.id = id;
         this.title = title;

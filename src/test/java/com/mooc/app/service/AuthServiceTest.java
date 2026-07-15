@@ -1,5 +1,8 @@
 package com.mooc.app.service;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.mooc.app.entity.UserEntity;
 import com.mooc.app.exception.AuthException;
 import com.mooc.app.repository.UserRepository;
@@ -10,15 +13,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -77,6 +84,44 @@ class AuthServiceTest {
             AuthException ex = assertThrows(AuthException.class,
                     () -> authService.sendCode("test@example.com", "1.2.3.4"));
             assertEquals("rate_limited", ex.getErrorCode());
+        }
+
+        @Test
+        void sendCode_infoLogsDoNotContainCodeOrEmail() {
+            when(rateLimitService.isSendCodeIpRateLimited("1.2.3.4")).thenReturn(false);
+            when(rateLimitService.isSendCodeEmailRateLimited("test@example.com")).thenReturn(false);
+
+            // Capture the code that gets saved
+            ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
+
+            // Attach ListAppender to AuthService logger at INFO level
+            ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger)
+                    LoggerFactory.getLogger(AuthService.class);
+            ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+            listAppender.start();
+            logger.addAppender(listAppender);
+            Level originalLevel = logger.getLevel();
+            logger.setLevel(Level.INFO);
+
+            try {
+                authService.sendCode("test@example.com", "1.2.3.4");
+                verify(codeStore).save(eq("test@example.com"), codeCaptor.capture(), eq(600L));
+                String savedCode = codeCaptor.getValue();
+
+                // Verify no INFO-level log message contains the email or the verification code
+                for (ILoggingEvent event : listAppender.list) {
+                    if (event.getLevel().isGreaterOrEqual(Level.INFO)) {
+                        String msg = event.getFormattedMessage();
+                        assertFalse(msg.contains("test@example.com"),
+                                "INFO log should not contain email: " + msg);
+                        assertFalse(msg.contains(savedCode),
+                                "INFO log should not contain verification code: " + msg);
+                    }
+                }
+            } finally {
+                logger.setLevel(originalLevel);
+                logger.detachAppender(listAppender);
+            }
         }
 
         @Test
