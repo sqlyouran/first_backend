@@ -5,8 +5,10 @@ import com.mooc.app.dto.CreatePostRequest;
 import com.mooc.app.dto.LoginRequest;
 import com.mooc.app.dto.RegisterRequest;
 import com.mooc.app.entity.NotificationType;
+import com.mooc.app.RateLimitTestHelper;
 import com.mooc.app.service.JwtService;
 import com.mooc.app.service.NotificationService;
+import com.mooc.app.service.RateLimitService;
 import com.mooc.app.service.VerificationCodeStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,7 @@ class NotificationControllerTest {
     @Autowired private VerificationCodeStore codeStore;
     @Autowired private NotificationService notificationService;
     @Autowired private JwtService jwtService;
+    @Autowired private RateLimitService rateLimitService;
 
     private String userAToken;
     private UUID userAId;
@@ -44,6 +47,7 @@ class NotificationControllerTest {
 
     @BeforeAll
     void setUp() throws Exception {
+        RateLimitTestHelper.reset(rateLimitService);
         // Register user A (1/3)
         userAToken = registerAndLogin("notif-a@test.com", "Password123!");
         userAId = parseUserId(userAToken);

@@ -5,6 +5,8 @@ import com.mooc.app.dto.CreatePostRequest;
 import com.mooc.app.dto.LoginRequest;
 import com.mooc.app.dto.RegisterRequest;
 import com.mooc.app.dto.UpdatePostRequest;
+import com.mooc.app.RateLimitTestHelper;
+import com.mooc.app.service.RateLimitService;
 import com.mooc.app.service.VerificationCodeStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -26,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Transactional
 class PostControllerTest {
 
     @Autowired
@@ -38,11 +40,15 @@ class PostControllerTest {
     @Autowired
     private VerificationCodeStore codeStore;
 
+    @Autowired
+    private RateLimitService rateLimitService;
+
     private String authorToken;
     private String otherToken;
 
     @BeforeEach
     void setup() throws Exception {
+        RateLimitTestHelper.reset(rateLimitService);
         authorToken = registerAndLogin("author@example.com", "Password1");
         otherToken = registerAndLogin("other@example.com", "Password1");
     }

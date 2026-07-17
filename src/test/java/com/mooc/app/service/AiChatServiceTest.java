@@ -16,7 +16,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
@@ -29,7 +29,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Transactional
 class AiChatServiceTest {
 
     @Autowired private AiChatService aiChatService;
@@ -43,6 +43,7 @@ class AiChatServiceTest {
 
     @BeforeEach
     void setupChatClientMock() {
+        reset(chatClient);
         requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
         streamResponseSpec = mock(ChatClient.StreamResponseSpec.class);
         when(chatClient.prompt()).thenReturn(requestSpec);

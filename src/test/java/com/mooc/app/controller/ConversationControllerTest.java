@@ -5,6 +5,8 @@ import com.mooc.app.dto.LoginRequest;
 import com.mooc.app.dto.RegisterRequest;
 import com.mooc.app.entity.UserEntity;
 import com.mooc.app.repository.UserRepository;
+import com.mooc.app.RateLimitTestHelper;
+import com.mooc.app.service.RateLimitService;
 import com.mooc.app.service.VerificationCodeStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -25,12 +27,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Transactional
 class ConversationControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private VerificationCodeStore codeStore;
+    @Autowired private RateLimitService rateLimitService;
     @Autowired private UserRepository userRepository;
 
     private String aliceToken;
@@ -40,6 +43,7 @@ class ConversationControllerTest {
 
     @BeforeEach
     void setup() throws Exception {
+        RateLimitTestHelper.reset(rateLimitService);
         aliceToken = registerAndLogin("alice@example.com", "Password1");
         bobToken = registerAndLogin("bob@example.com", "Password1");
         aliceId = extractUserId(aliceToken);
