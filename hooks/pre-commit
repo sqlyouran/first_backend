@@ -1,0 +1,48 @@
+#!/bin/bash
+# Pre-commit hook: fast tests only (excluding @Tag slow)
+# Coverage gate runs in pre-push with the full test suite, because
+# fast-only coverage (controller 88%) cannot meet the 90% threshold.
+# Only runs when Java files are staged
+
+set -e
+
+echo "🔍 [pre-commit] Checking staged files..."
+
+# Check if any Java files are staged
+JAVA_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.java$' || true)
+
+if [ -z "$JAVA_FILES" ]; then
+    echo "✅ [pre-commit] No Java files staged, skipping tests"
+    exit 0
+fi
+
+echo "📋 [pre-commit] Java files staged:"
+echo "$JAVA_FILES" | head -5
+COUNT=$(echo "$JAVA_FILES" | wc -l | tr -d ' ')
+if [ "$COUNT" -gt 5 ]; then
+    echo "   ... and $((COUNT - 5)) more"
+fi
+
+# Change to backend directory (where pom.xml lives)
+BACKEND_DIR="$(git rev-parse --show-toplevel)/backend"
+if [ ! -f "$BACKEND_DIR/pom.xml" ]; then
+    # Maybe we're already in a submodule
+    BACKEND_DIR="$(git rev-parse --show-toplevel)"
+fi
+cd "$BACKEND_DIR"
+
+echo ""
+echo "🧪 [pre-commit] Running fast tests (excluding @Tag slow)..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Run fast tests only (exclude @Tag("slow"))
+if ! ./mvnw test -DexcludedGroups=slow -q 2>&1; then
+    echo ""
+    echo "❌ [pre-commit] Tests failed! Commit aborted."
+    echo "   Run 'mvn test -DexcludedGroups=slow' to see failures."
+    exit 1
+fi
+
+echo ""
+echo "✅ [pre-commit] All checks passed!"
+exit 0

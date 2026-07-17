@@ -3,11 +3,14 @@ package com.mooc.app.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mooc.app.dto.LoginRequest;
 import com.mooc.app.dto.RegisterRequest;
+import com.mooc.app.RateLimitTestHelper;
 import com.mooc.app.entity.SpotEntity;
 import com.mooc.app.entity.SpotStatus;
 import com.mooc.app.repository.SpotRepository;
+import com.mooc.app.service.RateLimitService;
 import com.mooc.app.service.VerificationCodeStore;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,11 +28,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Tag("slow")
 class SpotBookmarkControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private VerificationCodeStore codeStore;
+    @Autowired private RateLimitService rateLimitService;
     @Autowired private SpotRepository spotRepository;
 
     private String userToken;
@@ -37,6 +42,7 @@ class SpotBookmarkControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        RateLimitTestHelper.reset(rateLimitService);
         userToken = registerAndLogin("spot-bookmark-user@test.com", "Password123!");
         spotId = createSpot();
     }

@@ -1,0 +1,44 @@
+#!/bin/bash
+# Pre-push hook: full test suite + JaCoCo coverage check
+# Always runs when pushing
+
+set -e
+
+echo "🚀 [pre-push] Running full test suite + coverage check..."
+
+# Change to backend directory (where pom.xml lives)
+BACKEND_DIR="$(git rev-parse --show-toplevel)/backend"
+if [ ! -f "$BACKEND_DIR/pom.xml" ]; then
+    # Maybe we're already in a submodule
+    BACKEND_DIR="$(git rev-parse --show-toplevel)"
+fi
+cd "$BACKEND_DIR"
+
+echo ""
+echo "🧪 [pre-push] Running all tests (including @Tag slow)..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Run all tests
+if ! ./mvnw test -q 2>&1; then
+    echo ""
+    echo "❌ [pre-push] Tests failed! Push aborted."
+    echo "   Run 'mvn test' to see failures."
+    exit 1
+fi
+
+echo ""
+echo "📊 [pre-push] Checking coverage thresholds..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Run JaCoCo report + check
+if ! ./mvnw jacoco:report jacoco:check -q 2>&1; then
+    echo ""
+    echo "❌ [pre-push] Coverage check failed! Push aborted."
+    echo "   See report at: backend/target/site/jacoco/index.html"
+    echo "   Thresholds: global ≥70%, service ≥55%, controller ≥90%"
+    exit 1
+fi
+
+echo ""
+echo "✅ [pre-push] All checks passed! Safe to push."
+exit 0

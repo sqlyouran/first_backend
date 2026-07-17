@@ -6,6 +6,7 @@ import com.mooc.app.entity.AiMessageRole;
 import com.mooc.app.repository.AiConversationRepository;
 import com.mooc.app.repository.AiMessageRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
@@ -32,6 +33,7 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Tag("slow")
 class AiChatServiceRagTest {
 
     @Autowired private AiChatService aiChatService;
