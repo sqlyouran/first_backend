@@ -19,7 +19,7 @@ public class VoteEntity extends BaseEntity {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "vote_type", nullable = false)
+    @Column(name = "vote_type", nullable = false, length = 20)
     private VoteType voteType;
 
     public UUID getPostId() { return postId; }

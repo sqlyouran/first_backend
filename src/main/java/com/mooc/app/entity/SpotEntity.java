@@ -58,7 +58,7 @@ public class SpotEntity extends BaseEntity {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private SpotStatus status = SpotStatus.PUBLISHED;
 
     @Column(precision = 2, scale = 1)

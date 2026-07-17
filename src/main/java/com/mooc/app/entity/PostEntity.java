@@ -39,7 +39,7 @@ public class PostEntity extends BaseEntity {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private PostStatus status = PostStatus.PUBLISHED;
 
     @NotNull(message = "Author ID must not be null")
