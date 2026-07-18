@@ -9,7 +9,22 @@ spring:
   sql:
     init:
       mode: never
+  data:
+    redis:
+      # Docker Compose 内网服务名；仍可被 REDIS_HOST 环境变量覆盖
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+  ai:
+    mcp:
+      client:
+        # 生产容器只装 JRE，无 Node/npx，强制关闭 MCP Client（stdio 依赖 npx）
+        enabled: false
 
 springdoc:
   api-docs:
     enabled: false
+
+# 生产日志只走 stdout，交给 docker compose logs 收集（不写容器内文件）
+logging:
+  file:
+    name:
