@@ -1,6 +1,6 @@
 # ===== Stage 1: Build =====
 # Maven 3.9 满足 pom 中插件的版本下限（本机 3.6.1 的 pin 仅为兼容下限）
-FROM maven:3.9-eclipse-temurin-17-jammy AS build
+FROM maven:3.9-eclipse-temurin-17-focal AS build
 WORKDIR /build
 
 # 先只拷贝 pom 预下载依赖，利用 Docker layer 缓存加速后续增量构建
